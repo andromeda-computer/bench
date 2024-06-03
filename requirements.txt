@@ -1,0 +1,7 @@
+rich
+psutil
+py-cpuinfo
+nvidia-ml-py
+PyYAML
+requests
+jinja2

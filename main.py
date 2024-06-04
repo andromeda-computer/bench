@@ -103,6 +103,22 @@ for model in suites[suite]:
     cmd_str = f"{llamafile} --nobrowser --port {PORT} -ngl 9999"
     try: 
         proc = subprocess.Popen(cmd_str, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=os.setsid)
+        # stderr_output, _ = proc.communicate()
+        # print(stderr_output.decode())  # print the stderr output as a string
+        while True:
+            stderr_line = proc.stderr.readline()
+            if not stderr_line:
+                break
+
+            line = stderr_line.decode()
+            if ("GGML_ASSERT" in line):
+                # TODO recompile it
+                # TODO add flag to force a recompile
+                print("ERROR", line, proc.stderr.readline().decode(), proc.stderr.readline().decode())
+                raise Exception("GGML_ASSERT")
+
+            if ("llama server listening" in line):
+                break
 
         # wait for the server to start
         url = f"http://127.0.0.1:{PORT}/health"

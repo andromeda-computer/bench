@@ -61,3 +61,11 @@ runtimes:
   docker:
     type: docker
   # TODO support vllm, mlx, transformers, etc
+datasets:
+  vision:
+    - name: VibeEval
+      url: "https://datasets-server.huggingface.co/rows?dataset=RekaAI%2FVibeEval&config=default&split=test&offset=0&length=100"
+      type: "hf_api"
+      key: "media_url"
+  # hearing:
+  #   - name: 

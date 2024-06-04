@@ -43,7 +43,7 @@ class LanguageBenchmark:
         results = []
         for p, i in enumerate(PROMPTS):
             prompt = template.render(prompt=p)
-            data = {"prompt": prompt, "stop": ["<|eot_id|>"]}
+            data = {"prompt": prompt, "stop": ["<|eot_id|>"], "temperature": 0}
             
             response = requests.post(url, json=data)
             json = response.json()

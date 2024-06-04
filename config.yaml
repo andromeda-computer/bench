@@ -65,7 +65,12 @@ datasets:
   vision:
     - name: VibeEval
       url: "https://datasets-server.huggingface.co/rows?dataset=RekaAI%2FVibeEval&config=default&split=test&offset=0&length=100"
-      type: "hf_api"
+      source: "hf-api"
       key: "media_url"
-  # hearing:
-  #   - name: 
+  hearing:
+    - name: androspeech
+      url: "https://datasets.andromeda.computer/audio/androspeech"
+      source: "andromeda"
+    - name: voxpopuli-en
+      url: "https://datasets.andromeda.computer/audio/voxpopuli"
+      source: "andromeda"

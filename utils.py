@@ -82,6 +82,7 @@ class FileSpec(TypedDict):
     dest_dir: str
     filename: str
 
+# make this nicer to support different kinds of downloaders
 def url_downloader(files: List[FileSpec]):
     """Download multiple files to the given directory."""
 

@@ -1,8 +1,9 @@
 from benchmark import LanguageBenchmark
-from downloader import download
+from downloader import downloader
 from sys_info import system 
 
-download() 
+downloader.download()
+
 system.print_sys_info()
 
 # run benchmarks

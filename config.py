@@ -14,5 +14,6 @@ class Config():
             self.raw = yaml.safe_load(cfg_file)
             self.suites = self.raw['suites']
             self.runtimes = self.raw['runtimes']
+            self.datasets = self.raw['datasets']
 
 config = Config()

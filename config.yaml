@@ -1,53 +1,71 @@
 # TODO GB Size, Params, Future would be recomendations on hardware? Test a bunch of quants?
 # TODO support gguf properly by downloading appropriate runtimes
-suites:
-  speaking:
-    - name: piper
-      type: speaking
-      runtime: docker
-      quant: fp32
-      url: cjpais/piper-http
+benchmarks:
+  # speaking:
+  #   models:
+  #     - name: piper
+  #       type: speaking
+  #       runtime: docker
+  #       quant: fp32
+  #       url: cjpais/piper-http
   hearing:
-    - name: whisper-tiny
-      type: hearing
-      runtime: llamafile 
-      quant: q8
-      url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.tiny.q8.llamafile
-    - name: whisper-large-v3
-      type: hearing
-      runtime: llamafile 
-      quant: q8
-      url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.large-v3.q8.llamafile
+    models:
+      - name: whisper-tiny
+        type: hearing
+        runtime: llamafile 
+        quant: q8
+        url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.tiny.q8.llamafile
+      - name: whisper-large-v3
+        type: hearing
+        runtime: llamafile 
+        quant: q8
+        url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.large-v3.q8.llamafile
+    datasets:
+      - name: androspeech
+        type: hearing
+        url: "https://datasets.andromeda.computer/audio/androspeech"
+        source: "andromeda"
+      - name: voxpopuli-en
+        type: hearing
+        url: "https://datasets.andromeda.computer/audio/voxpopuli"
+        source: "andromeda"
   vision:
-    - name: moondream
-      type: vision
-      runtime: llamafile
-      quant: q8
-      url: https://huggingface.co/cjpais/moondream2-llamafile/resolve/main/moondream2-q8-050824.llamafile
+    models:
+      - name: moondream
+        type: vision
+        runtime: llamafile
+        quant: q8
+        url: https://huggingface.co/cjpais/moondream2-llamafile/resolve/main/moondream2-q8-050824.llamafile
+    datasets:
+      - name: VibeEval
+        type: vision
+        url: "https://datasets-server.huggingface.co/rows?dataset=RekaAI%2FVibeEval&config=default&split=test&offset=0&length=100"
+        source: "hf-api"
+        key: "media_url"
     # add llava 1.6 and test it as well
-  language:
-    - name: llama3-8B-instruct
-      type: language
-      runtime: llamafile
-      prompt_template: "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful AI assistant.<|eot_id|><|start_header_id|>User<|end_header_id|>\n{{ prompt }}<|eot_id|><|start_header_id|>Llama<|end_header_id|>"
-      quant: q5_K_M
-      params: 8B
-      url: https://huggingface.co/Mozilla/Meta-Llama-3-8B-Instruct-llamafile/resolve/main/Meta-Llama-3-8B-Instruct.Q5_K_M.llamafile
-    - name: phi-3-mini-4k-instruct
-      type: language
-      runtime: llamafile
-      prompt_template: "<|system|>\nYou are a helpful AI assistant.<|end|>\n<|user|>\n{{ prompt }}<|end|>\n<|assistant|>"
-      quant: q5_K_M
-      params: 3.8B
-      context: 4k
-      url: https://huggingface.co/Mozilla/Phi-3-mini-4k-instruct-llamafile/resolve/main/Phi-3-mini-4k-instruct.Q5_K_M.llamafile
-    - name: tinyllama-chat
-      type: language
-      runtime: llamafile
-      prompt_template: "<|im_start|>system\nYou are a helpful AI assistant.<|im_end|>\n<|im_start|>user\n{{ prompt }}<|im_end|>\n<|im_start|>assistant"
-      quant: q5_K_M
-      params: 1.1B
-      url: https://huggingface.co/Mozilla/TinyLlama-1.1B-Chat-v1.0-llamafile/resolve/main/TinyLlama-1.1B-Chat-v1.0.Q5_K_M.llamafile
+  # language:
+  #   - name: llama3-8B-instruct
+  #     type: language
+  #     runtime: llamafile
+  #     prompt_template: "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful AI assistant.<|eot_id|><|start_header_id|>User<|end_header_id|>\n{{ prompt }}<|eot_id|><|start_header_id|>Llama<|end_header_id|>"
+  #     quant: q5_K_M
+  #     params: 8B
+  #     url: https://huggingface.co/Mozilla/Meta-Llama-3-8B-Instruct-llamafile/resolve/main/Meta-Llama-3-8B-Instruct.Q5_K_M.llamafile
+  #   - name: phi-3-mini-4k-instruct
+  #     type: language
+  #     runtime: llamafile
+  #     prompt_template: "<|system|>\nYou are a helpful AI assistant.<|end|>\n<|user|>\n{{ prompt }}<|end|>\n<|assistant|>"
+  #     quant: q5_K_M
+  #     params: 3.8B
+  #     context: 4k
+  #     url: https://huggingface.co/Mozilla/Phi-3-mini-4k-instruct-llamafile/resolve/main/Phi-3-mini-4k-instruct.Q5_K_M.llamafile
+  #   - name: tinyllama-chat
+  #     type: language
+  #     runtime: llamafile
+  #     prompt_template: "<|im_start|>system\nYou are a helpful AI assistant.<|im_end|>\n<|im_start|>user\n{{ prompt }}<|im_end|>\n<|im_start|>assistant"
+  #     quant: q5_K_M
+  #     params: 1.1B
+  #     url: https://huggingface.co/Mozilla/TinyLlama-1.1B-Chat-v1.0-llamafile/resolve/main/TinyLlama-1.1B-Chat-v1.0.Q5_K_M.llamafile
     # TODO add bigger than 7B models, vicuna? codestral? mixtral 8x7b? llama 70b
 runtimes:
   llamafile:
@@ -61,16 +79,3 @@ runtimes:
   docker:
     type: docker
   # TODO support vllm, mlx, transformers, etc
-datasets:
-  vision:
-    - name: VibeEval
-      url: "https://datasets-server.huggingface.co/rows?dataset=RekaAI%2FVibeEval&config=default&split=test&offset=0&length=100"
-      source: "hf-api"
-      key: "media_url"
-  hearing:
-    - name: androspeech
-      url: "https://datasets.andromeda.computer/audio/androspeech"
-      source: "andromeda"
-    - name: voxpopuli-en
-      url: "https://datasets.andromeda.computer/audio/voxpopuli"
-      source: "andromeda"

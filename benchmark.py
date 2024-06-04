@@ -169,6 +169,24 @@ class LanguageBenchmark:
         }
 
 
+class VisionBenchmark:
+
+    def __init__(self):
+        self.data = []
+
+        # TODO really should move this into Config class. for now this is fine.
+        self.models = config.suites["vision"]
+        self.base_dir = os.path.join(MODEL_STORE, "vision")
+        # self.datasets = 
+        print("\nVision")
+        self.console = Console()
+
+        # Print the header
+        header = ""
+        for col_name, col_width in columns:
+            header += f"{col_name:<{col_width}}"
+        self.console.print(header)
+
 def benchmark_vision():
     pass
 

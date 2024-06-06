@@ -1,3 +1,3 @@
-from config import benchmarker
+from benchmark import benchmarker
 
 benchmarker.benchmark()

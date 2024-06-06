@@ -22,11 +22,11 @@ benchmarks:
         url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.large-v3.q8.llamafile
     datasets:
       - name: androspeech
-        type: hearing
+        type: file
         url: "https://datasets.andromeda.computer/audio/androspeech"
         source: "andromeda"
       - name: voxpopuli-en
-        type: hearing
+        type: file
         url: "https://datasets.andromeda.computer/audio/voxpopuli"
         source: "andromeda"
   vision:
@@ -35,38 +35,76 @@ benchmarks:
         type: vision
         runtime: llamafile
         quant: q8
+        context: 2048
+        prompt_template: "\n\nQuestion:[img-10]{{ prompt }}\n\nAnswer:"
+        stop: "<|endoftext|>"
         url: https://huggingface.co/cjpais/moondream2-llamafile/resolve/main/moondream2-q8-050824.llamafile
     datasets:
       - name: VibeEval
-        type: vision
+        type: file
         url: "https://datasets-server.huggingface.co/rows?dataset=RekaAI%2FVibeEval&config=default&split=test&offset=0&length=100"
         source: "hf-api"
         key: "media_url"
     # add llava 1.6 and test it as well
-  # language:
-  #   - name: llama3-8B-instruct
-  #     type: language
-  #     runtime: llamafile
-  #     prompt_template: "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful AI assistant.<|eot_id|><|start_header_id|>User<|end_header_id|>\n{{ prompt }}<|eot_id|><|start_header_id|>Llama<|end_header_id|>"
-  #     quant: q5_K_M
-  #     params: 8B
-  #     url: https://huggingface.co/Mozilla/Meta-Llama-3-8B-Instruct-llamafile/resolve/main/Meta-Llama-3-8B-Instruct.Q5_K_M.llamafile
-  #   - name: phi-3-mini-4k-instruct
-  #     type: language
-  #     runtime: llamafile
-  #     prompt_template: "<|system|>\nYou are a helpful AI assistant.<|end|>\n<|user|>\n{{ prompt }}<|end|>\n<|assistant|>"
-  #     quant: q5_K_M
-  #     params: 3.8B
-  #     context: 4k
-  #     url: https://huggingface.co/Mozilla/Phi-3-mini-4k-instruct-llamafile/resolve/main/Phi-3-mini-4k-instruct.Q5_K_M.llamafile
-  #   - name: tinyllama-chat
-  #     type: language
-  #     runtime: llamafile
-  #     prompt_template: "<|im_start|>system\nYou are a helpful AI assistant.<|im_end|>\n<|im_start|>user\n{{ prompt }}<|im_end|>\n<|im_start|>assistant"
-  #     quant: q5_K_M
-  #     params: 1.1B
-  #     url: https://huggingface.co/Mozilla/TinyLlama-1.1B-Chat-v1.0-llamafile/resolve/main/TinyLlama-1.1B-Chat-v1.0.Q5_K_M.llamafile
-    # TODO add bigger than 7B models, vicuna? codestral? mixtral 8x7b? llama 70b
+  language:
+    models:
+      - name: llama3-8B-instruct
+        type: language
+        runtime: llamafile
+        prompt_template: "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful AI assistant.<|eot_id|><|start_header_id|>User<|end_header_id|>\n{{ prompt }}<|eot_id|><|start_header_id|>Llama<|end_header_id|>"
+        quant: q5_K_M
+        params: 8B
+        context: 8192
+        end: "<|eot_id|>"
+        url: https://huggingface.co/Mozilla/Meta-Llama-3-8B-Instruct-llamafile/resolve/main/Meta-Llama-3-8B-Instruct.Q5_K_M.llamafile
+      - name: phi-3-mini-4k-instruct
+        type: language
+        runtime: llamafile
+        prompt_template: "<|system|>\nYou are a helpful AI assistant.<|end|>\n<|user|>\n{{ prompt }}<|end|>\n<|assistant|>"
+        quant: q5_K_M
+        params: 3.8B
+        context: 4096
+        url: https://huggingface.co/Mozilla/Phi-3-mini-4k-instruct-llamafile/resolve/main/Phi-3-mini-4k-instruct.Q5_K_M.llamafile
+      - name: tinyllama-chat
+        type: language
+        runtime: llamafile
+        prompt_template: "<|im_start|>system\nYou are a helpful AI assistant.<|im_end|>\n<|im_start|>user\n{{ prompt }}<|im_end|>\n<|im_start|>assistant"
+        quant: q5_K_M
+        context: 2048
+        params: 1.1B
+        url: https://huggingface.co/Mozilla/TinyLlama-1.1B-Chat-v1.0-llamafile/resolve/main/TinyLlama-1.1B-Chat-v1.0.Q5_K_M.llamafile
+      # TODO add bigger than 7B models, vicuna? codestral? mixtral 8x7b? llama 70b
+    datasets:
+      - name: OpenOrcaShortQuestion
+        type: prompt
+        url: "https://datasets-server.huggingface.co/filter?dataset=Open-Orca%2FOpenOrca&config=default&split=train&offset=0&length=16&where=%22question.length%22%3E%3D12+and+%22question.length%22%3C384"
+        source: "hf-api"
+        key: "question"
+      - name: OpenOrcaMediumQuestion
+        type: prompt
+        url: "https://datasets-server.huggingface.co/filter?dataset=Open-Orca%2FOpenOrca&config=default&split=train&offset=0&length=16&where=%22question.length%22%3E%3D384+and+%22question.length%22%3C1536"
+        source: "hf-api"
+        key: "question"
+      # - name: OpenOrcaLongQuestion
+      #   type: prompt
+      #   url: "https://datasets-server.huggingface.co/filter?dataset=Open-Orca%2FOpenOrca&config=default&split=train&offset=0&length=16&where=%22question.length%22%3E%3D1536+and+%22question.length%22%3C3072"
+      #   source: "hf-api"
+      #   key: "question"
+      - name: OpenOrcaShortResponse
+        type: prompt
+        url: "https://datasets-server.huggingface.co/filter?dataset=Open-Orca%2FOpenOrca&config=default&split=train&offset=200&length=16&where=%22response.length%22%3E%3D12+and+%22response.length%22%3C384"
+        source: "hf-api"
+        key: "question"
+      - name: OpenOrcaMediumResponse
+        type: prompt
+        url: "https://datasets-server.huggingface.co/filter?dataset=Open-Orca%2FOpenOrca&config=default&split=train&offset=200&length=16&where=%22response.length%22%3E%3D384+and+%22response.length%22%3C1536"
+        source: "hf-api"
+        key: "question"
+      # - name: OpenOrcaLongResponse
+      #   type: prompt
+      #   url: "https://datasets-server.huggingface.co/filter?dataset=Open-Orca%2FOpenOrca&config=default&split=train&offset=200&length=16&where=%22response.length%22%3E%3D1536+and+%22response.length%22%3C3072"
+      #   source: "hf-api"
+      #   key: "question"
 runtimes:
   llamafile:
     type: llamafile

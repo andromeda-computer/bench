@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-PORT = 8314
+
 HOST = "127.0.0.1"
 
 class Benchmark:

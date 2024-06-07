@@ -1,29 +1,21 @@
+import threading
+import time
 import psutil
 import requests
-from rich.align import Align
 from rich.console import Console
 from rich.layout import Layout
-from rich.live import Live
-from rich.text import Text
-
 from threading import Event
-import signal
+from rich.table import Table
+from rich.live import Live
+from rich.panel import Panel
 
 import os.path
-import sys
 from concurrent.futures import ThreadPoolExecutor
-
-from functools import partial
 
 from typing import List, TypedDict
 
-from urllib.request import urlopen
-
-import tqdm
-
 console = Console()
 layout = Layout()
-
 
 from rich.progress import (
     BarColumn,
@@ -89,52 +81,51 @@ def url_downloader(files: List[FileSpec]):
                 task_id = progress.add_task("download", filename=file['filename'], start=False)
                 pool.submit(copy_url, task_id, file['url'], dest_path)
 
-# import os
-# import requests
-# from concurrent.futures import ThreadPoolExecutor
-# from typing import TypedDict, List
-# from tqdm import tqdm
+# livetablemanager?
+class BenchmarkLogger():
+    def __init__(self, columns, title):
+        self.columns = columns
+        self.title = title
+        self.rows = {}
+        self.console = Console()
+        self.lock = threading.Lock()
+        self.update_flag = threading.Event()
+        self.update_flag.set()
 
-# class FileSpec(TypedDict):
-#     url: str
-#     dest_dir: str
-#     filename: str
+    def _generate_table(self):
+        table = Table(box=None)
+        for column in self.columns:
+            table.add_column(column)
+        for row in self.rows.values():
+            table.add_row(*[str(row.get(col, "")) for col in self.columns])
+        return Panel(table, title=self.title, border_style="blue")
 
-# def copy_url(url: str, path: str, progress_bar: tqdm) -> None:
-#     """Copy data from a url to a local file."""
-#     response = requests.get(url, stream=True)
-#     total_size = int(response.headers.get('Content-Length', 0))
-#     progress_bar.total = total_size
-#     block_size = 32768
+    def _refresh_table(self, live):
+        with self.lock:
+            live.update(self._generate_table())
 
-#     with open(path, "wb") as dest_file:
-#         for chunk in response.iter_content(block_size):
-#             dest_file.write(chunk)
-#             progress_bar.update(len(chunk))
+    def add_row(self, row_name, data):
+        with self.lock:
+            self.rows[row_name] = data
 
-# def url_downloader(files: List[FileSpec]):
-#     """Download multiple files to the given directory."""
+    def update_row(self, row_name, data):
+        with self.lock:
+            if row_name in self.rows:
+                self.rows[row_name].update(data)
 
-#     with ThreadPoolExecutor(max_workers=4) as pool:
-#         progress_bars = []
-#         futures = []
+    def start_live_updates(self, refresh_rate=4):
+        self.live = Live(self._generate_table(), refresh_per_second=refresh_rate)
+        self.update_thread = threading.Thread(target=self._run_updates)
+        self.update_thread.start()
+        with self.live:
+            self.update_thread.join()
 
-#         for file in files:
-#             dest_path = os.path.join(file['dest_dir'], file['filename'])
-#             progress_bar = tqdm(
-#                 unit='B',
-#                 unit_scale=True,
-#                 unit_divisor=1024,
-#                 total=None,
-#                 desc=file['filename'],
-#                 bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]'
-#             )
-#             progress_bars.append(progress_bar)
-#             future = pool.submit(copy_url, file['url'], dest_path, progress_bar)
-#             futures.append(future)
+    def _run_updates(self):
+        while self.update_flag.is_set():
+            self._refresh_table(self.live)
+            time.sleep(0.1)
 
-#         for future in futures:
-#             future.result()
-
-#         for progress_bar in progress_bars:
-#             progress_bar.close()
+    def stop(self):
+        self.update_flag.clear()
+        if self.update_thread.is_alive():
+            self.update_thread.join()

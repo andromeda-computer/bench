@@ -1,10 +1,14 @@
+import abc
+import threading
 import yaml
 from config import CONFIG_FILE, FileDataset, Model, PromptDataset
 from runtimes.docker import DockerRuntime
 from runtimes.llamafile import LlamafileRuntime
 from sys_info import system
 
-class Benchmark():
+from utils import BenchmarkLogger
+
+class Benchmark(abc.ABC):
 
     def __init__(self, name, cfg):
         # TODO set up proper logging for each benchmark
@@ -38,18 +42,72 @@ class Benchmark():
         for _, dataset in self.datasets.items():
             dataset.download()
 
+    @abc.abstractmethod
+    def _benchmark_columns(self):
+        pass
+
     def benchmark(self):
+        logger = BenchmarkLogger(self._benchmark_columns(), self.name.capitalize())
+        update_thread = threading.Thread(target=logger.start_live_updates)
+        update_thread.start()
+
+        # with Live(layout, refresh_per_second=4) as live:
         for _, model in self.models.items():
+            # Create a layout for the live display
             runtime = None
             if model.runtime == "llamafile":
-                runtime = LlamafileRuntime()
+                runtime = LlamafileRuntime(logger)
             elif model.runtime == "docker":
-                runtime = DockerRuntime()
+                runtime = DockerRuntime(logger)
             else:
                 print(f"Runtime: {model.runtime} not supported")
                 continue
 
             runtime.benchmark(model, self.datasets)
+        
+        logger.stop()
+
+class LanguageBenchmark(Benchmark):
+
+    def _benchmark_columns(self):
+        return [
+            "status", 
+            "model",
+            "# prompt tokens",
+            "# generated tokens",
+            "prompt tps",
+            "generate tps",
+            "prompt tps/watt",
+            "generate tps/watt"
+        ]
+
+class HearingBenchmark(Benchmark):
+
+    def _benchmark_columns(self):
+        return [
+            "status", 
+            "model",
+            "total input seconds",
+            "total transcribe time",
+            "avg speedup",
+            "avg speedup/watt",
+        ]
+
+class VisionBenchmark(Benchmark):
+
+    def _benchmark_columns(self):
+        return [
+            "status", 
+            "model",
+            "# images",
+            "# prompt tokens",
+            "# generated tokens",
+            "clip time",
+            "prompt tps",
+            "generate tps",
+            "prompt tps/watt",
+            "generate tps/watt"
+        ]
 
 class Benchmarker():
 
@@ -62,7 +120,15 @@ class Benchmarker():
     def _init_benchmarks(self, cfg):
         benchmarks = {}
         for benchmark, value in cfg.items():
-            benchmarks[benchmark] = Benchmark(benchmark, value)
+            if benchmark == "language":
+                benchmarks[benchmark] = LanguageBenchmark(benchmark, value)
+            elif benchmark == "hearing":
+                benchmarks[benchmark] = HearingBenchmark(benchmark, value)
+            elif benchmark == "vision":
+                benchmarks[benchmark] = VisionBenchmark(benchmark, value)
+            else:
+                print(f"Benchmark {benchmark} not supported")
+                continue
 
         return benchmarks
     
@@ -78,8 +144,8 @@ class Benchmarker():
         system.print_sys_info()
 
         print("Benchmarking...")
-        # await self.benchmark_language()
-        # await self.benchmark_vision()
+        self.benchmark_language()
+        self.benchmark_vision()
         self.benchmark_hearing()
 
     def benchmark_vision(self):

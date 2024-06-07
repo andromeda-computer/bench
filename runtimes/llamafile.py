@@ -7,10 +7,14 @@ import time
 
 from jinja2 import Template
 import requests
+from benchmarks.hearing import HearingBenchmarkResult
+from benchmarks.language import LanguageBenchmarkResult
 from config import PORT, Model
 from runtimes.runtime import Runtime
 from utils import kill
 from sys_info import system
+
+from rich.text import Text
 
 def read_stderr(pipe, stop_event, stderr_lines, stop_reading_event):
     while not stop_reading_event.is_set():
@@ -30,7 +34,7 @@ def read_stderr(pipe, stop_event, stderr_lines, stop_reading_event):
 def read_stdout(pipe, stop_event, stderr_lines):
     while not stop_event.is_set():
         line = pipe.readline()
-        print("decoded from stdout", line.decode())
+        # print("decoded from stdout", line.decode())
 
 class LlamafileRuntime(Runtime):
     def download(self):
@@ -53,48 +57,80 @@ class LlamafileRuntime(Runtime):
         self._kill_server()
 
     def _benchmark_language(self, model, datasets):
-        count = 0
         results = []
+        count = 0
+        # total_count = sum([len(dataset.prompts) for _, dataset in datasets.items()])
+
+        self.logger.add_row(model.name, {
+            "status": f"[{count}]", 
+            "model": model.name
+        })
+
         for _, dataset in datasets.items():
-            print("Dataset:", dataset.name)
-            # open the prompts.json file
-            prompts_file = os.path.join(dataset.dir, "prompts.json")
-            with open(prompts_file, "r") as f:
-                prompts = json.load(f)
-            
+            with open(os.path.join(dataset.dir, "prompts.json"), "r") as f:
+                prompts = json.loads(f.read())
+
             for prompt in prompts:
-                print("count:", count)
-                # print("Prompt:", prompt)
+                self.logger.update_row(model.name, {"status": f"{count}"})
                 data = self._build_llamacpp_request(model, prompt)
 
                 system.power_start("bench_run")
                 response = requests.post(f"{self.url}/completion", json=data)
-                system.power_stop("bench_run")
-                jsonResponse = response.json()
-                count += 1
-                # print(jsonResponse['content'])
-                # print(jsonResponse['timings']['prompt_per_second'], jsonResponse['timings']['predicted_per_second'])
+                power = system.power_stop("bench_run")
 
+                result = LanguageBenchmarkResult(prompt, response.json(), power)
+                results.append(result)
+
+                self.logger.update_row(model.name, {
+                    "status": f"{count + 1}",
+                    "# prompt tokens": sum(r.n_prompt_tokens for r in results),
+                    "# generated tokens": sum(r.n_generated_tokens for r in results),
+                    "prompt tps": round(sum(r.prompt_tps for r in results) / len(results), 2),
+                    "generate tps": round(sum(r.generated_tps for r in results) / len(results), 2),
+                    "prompt tps/watt": round(sum(r.prompt_tps_watt for r in results) / len(results), 2),
+                    "generate tps/watt": round(sum(r.generated_tps_watt for r in results) / len(results), 2),
+                })
+
+                count += 1
         return results
 
     def _benchmark_vision(self, model, datasets):
+        results = []
         count = 0
+
+        self.logger.add_row(model.name, {
+            "status": f"[{count}]", 
+            "model": model.name
+        })
 
         results = []
         for _, dataset in datasets.items():
-            print("Dataset:", dataset.name)
             for file in os.listdir(dataset.dir):
-                print(file, count)
+                self.logger.update_row(model.name, {"status": f"{count}"})
                 image = os.path.join(dataset.dir, file)
-                data = self._build_llamacpp_request(model, "describe this image in detail", image)
+                prompt = "describe this image in detail"
+                data = self._build_llamacpp_request(model, prompt, image)
 
                 system.power_start("bench_run")
                 response = requests.post(f"{self.url}/completion", json=data)
-                system.power_stop("bench_run")
-                jsonResponse = response.json()
+                power = system.power_stop("bench_run")
+
+                result = LanguageBenchmarkResult(prompt, response.json(), power)
+                results.append(result)
+
+                # TODO this probably goes directly in language benchmark result or something
+                # would have the appropriate adapters depending on the runtime
+                self.logger.update_row(model.name, {
+                    "status": f"{count + 1}",
+                    "# prompt tokens": sum(r.n_prompt_tokens for r in results),
+                    "# generated tokens": sum(r.n_generated_tokens for r in results),
+                    "prompt tps": round(sum(r.prompt_tps for r in results) / len(results), 2),
+                    "generate tps": round(sum(r.generated_tps for r in results) / len(results), 2),
+                    "prompt tps/watt": round(sum(r.prompt_tps_watt for r in results) / len(results), 2),
+                    "generate tps/watt": round(sum(r.generated_tps_watt for r in results) / len(results), 2),
+                })
+
                 count += 1
-                # print(jsonResponse['content'])
-                # print(jsonResponse['timings']['prompt_per_second'], jsonResponse['timings']['predicted_per_second'])
 
         return results
 
@@ -116,28 +152,47 @@ class LlamafileRuntime(Runtime):
     def _benchmark_hearing(self, model, datasets):
 
         count = 0
+        results = []
+
+        self.logger.add_row(model.name, {
+            "status": f"[{count}]", 
+            "model": model.name
+        })
+
         for _, dataset in datasets.items():
-            print("Dataset:", dataset.name)
             for file in os.listdir(dataset.dir):
-                print("count:", count, file)
                 audio = os.path.join(dataset.dir, file)
+                fs_file = open(audio, 'rb')
                 files = {
-                    'file': (file, open(audio, 'rb'))
+                    'file': (file, fs_file)
                 }
                 data = {
                     'temperature': 0,
-                    'temperature_inc': 0.2
-                    'response_format': "json"
+                    'temperature_inc': 0.2,
+                    'response_format': "verbose_json"
                 }
 
+                start_time = time.time()
+                system.power_start("hearing_bench_run")
                 response = requests.post(f"{self.url}/inference", files=files, data=data)
-                jsonResponse = response.json()
-                print(jsonResponse)
-                count += 1
+                power = system.power_stop("hearing_bench_run")
+                total_time = time.time() - start_time
+                response_json = response.json()
+                if (response_json.get("error")):
+                    print(f"Error: {response_json.get('error')} on {file}")
+                    continue
+                result = HearingBenchmarkResult(response.json(), total_time, power)
+                results.append(result)
 
-                # print(jsonResponse)
-                # print(jsonResponse['content'])
-                # print(jsonResponse['timings']['prompt_per_second'], jsonResponse['timings']['predicted_per_second'])
+                self.logger.update_row(model.name, {
+                    "status": f"{count + 1}",
+                    "total input seconds": round(sum(r.input_seconds for r in results), 2),
+                    "total transcribe time": round(sum(r.transcribe_time for r in results), 2),
+                    "avg speedup": f"{round(sum(r.speedup for r in results) / len(results), 2)}x",
+                    "avg speedup/watt": f"{round(sum(r.speedup_watt for r in results) / len(results), 2)}x"
+                })
+
+                count += 1
 
         pass
 
@@ -165,6 +220,7 @@ class LlamafileRuntime(Runtime):
                 str(PORT),
                 "--recompile" if recompile else "",
                 f"-ngl {str(ngl)}" if ngl != 0 else "",
+                ">&2"
             ])
 
         try:

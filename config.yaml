@@ -55,7 +55,7 @@ benchmarks:
         quant: q5_K_M
         params: 8B
         context: 8192
-        end: "<|eot_id|>"
+        stop: "<|eot_id|>"
         url: https://huggingface.co/Mozilla/Meta-Llama-3-8B-Instruct-llamafile/resolve/main/Meta-Llama-3-8B-Instruct.Q5_K_M.llamafile
       - name: phi-3-mini-4k-instruct
         type: language
@@ -63,6 +63,7 @@ benchmarks:
         prompt_template: "<|system|>\nYou are a helpful AI assistant.<|end|>\n<|user|>\n{{ prompt }}<|end|>\n<|assistant|>"
         quant: q5_K_M
         params: 3.8B
+        stop: "<|end|>"
         context: 4096
         url: https://huggingface.co/Mozilla/Phi-3-mini-4k-instruct-llamafile/resolve/main/Phi-3-mini-4k-instruct.Q5_K_M.llamafile
       - name: tinyllama-chat
@@ -71,6 +72,7 @@ benchmarks:
         prompt_template: "<|im_start|>system\nYou are a helpful AI assistant.<|im_end|>\n<|im_start|>user\n{{ prompt }}<|im_end|>\n<|im_start|>assistant"
         quant: q5_K_M
         context: 2048
+        stop: "</s>"
         params: 1.1B
         url: https://huggingface.co/Mozilla/TinyLlama-1.1B-Chat-v1.0-llamafile/resolve/main/TinyLlama-1.1B-Chat-v1.0.Q5_K_M.llamafile
       # TODO add bigger than 7B models, vicuna? codestral? mixtral 8x7b? llama 70b
@@ -85,11 +87,11 @@ benchmarks:
         url: "https://datasets-server.huggingface.co/filter?dataset=Open-Orca%2FOpenOrca&config=default&split=train&offset=0&length=16&where=%22question.length%22%3E%3D384+and+%22question.length%22%3C1536"
         source: "hf-api"
         key: "question"
-      # - name: OpenOrcaLongQuestion
-      #   type: prompt
-      #   url: "https://datasets-server.huggingface.co/filter?dataset=Open-Orca%2FOpenOrca&config=default&split=train&offset=0&length=16&where=%22question.length%22%3E%3D1536+and+%22question.length%22%3C3072"
-      #   source: "hf-api"
-      #   key: "question"
+      - name: OpenOrcaLongQuestion
+        type: prompt
+        url: "https://datasets-server.huggingface.co/filter?dataset=Open-Orca%2FOpenOrca&config=default&split=train&offset=0&length=16&where=%22question.length%22%3E%3D1536+and+%22question.length%22%3C3072"
+        source: "hf-api"
+        key: "question"
       - name: OpenOrcaShortResponse
         type: prompt
         url: "https://datasets-server.huggingface.co/filter?dataset=Open-Orca%2FOpenOrca&config=default&split=train&offset=200&length=16&where=%22response.length%22%3E%3D12+and+%22response.length%22%3C384"
@@ -100,11 +102,11 @@ benchmarks:
         url: "https://datasets-server.huggingface.co/filter?dataset=Open-Orca%2FOpenOrca&config=default&split=train&offset=200&length=16&where=%22response.length%22%3E%3D384+and+%22response.length%22%3C1536"
         source: "hf-api"
         key: "question"
-      # - name: OpenOrcaLongResponse
-      #   type: prompt
-      #   url: "https://datasets-server.huggingface.co/filter?dataset=Open-Orca%2FOpenOrca&config=default&split=train&offset=200&length=16&where=%22response.length%22%3E%3D1536+and+%22response.length%22%3C3072"
-      #   source: "hf-api"
-      #   key: "question"
+      - name: OpenOrcaLongResponse
+        type: prompt
+        url: "https://datasets-server.huggingface.co/filter?dataset=Open-Orca%2FOpenOrca&config=default&split=train&offset=200&length=16&where=%22response.length%22%3E%3D1536+and+%22response.length%22%3C3072"
+        source: "hf-api"
+        key: "question"
 runtimes:
   llamafile:
     type: llamafile

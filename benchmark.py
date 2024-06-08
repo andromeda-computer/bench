@@ -3,7 +3,7 @@ import threading
 import yaml
 from config import CONFIG_FILE, FileDataset, Model, PromptDataset
 from runtimes.docker import DockerRuntime
-from runtimes.llamafile import LlamafileRuntime
+from runtimes.ggml import LlamafileRuntime, WhisperfileRuntime
 from sys_info import system
 from logger import logger
 
@@ -11,13 +11,14 @@ from utils import BenchmarkLogger
 
 class Benchmark(abc.ABC):
 
-    def __init__(self, name, cfg, **kwargs):
+    def __init__(self, name, cfg, runtimes, **kwargs):
         # TODO set up proper logging for each benchmark
         print(f"Preparing {name} benchmark...")
 
         self.name = name
         self.models = {}
         self.datasets = {}
+        self.runtimes = runtimes
 
         logger.info(f"Preparing models for {name}")
         for model in cfg['models']:
@@ -42,25 +43,21 @@ class Benchmark(abc.ABC):
         pass
 
     def benchmark(self):
-        logger = BenchmarkLogger(self._benchmark_columns(), self.name.capitalize())
-        update_thread = threading.Thread(target=logger.start_live_updates)
+        bench_logger = BenchmarkLogger(self._benchmark_columns(), self.name.capitalize())
+        update_thread = threading.Thread(target=bench_logger.start_live_updates)
         update_thread.start()
 
-        # with Live(layout, refresh_per_second=4) as live:
         for _, model in self.models.items():
-            # Create a layout for the live display
-            runtime = None
-            if model.runtime == "llamafile":
-                runtime = LlamafileRuntime(logger)
-            elif model.runtime == "docker":
-                runtime = DockerRuntime(logger)
-            else:
+            runtime = self.runtimes.get(model.runtime, None)
+
+            if not runtime:
                 logger.warning(f"Runtime: {model.runtime} not supported")
                 continue
 
-            runtime.benchmark(model, self.datasets)
+            runtime.benchmark(model, self.datasets, bench_logger)
         
-        logger.stop()
+        bench_logger.stop()
+
 
 class LanguageBenchmark(Benchmark):
 
@@ -121,6 +118,7 @@ class Benchmarker():
         cfg_file = open(CONFIG_FILE, 'r')
 
         self.cfg = yaml.safe_load(cfg_file)
+        self.runtimes = self._init_runtimes(self.cfg['runtimes'])
         self.benchmarks = self._init_benchmarks(self.cfg['benchmarks'], **kwargs)
 
     def _init_benchmarks(self, cfg, **kwargs):
@@ -128,9 +126,24 @@ class Benchmarker():
         for benchmark, value in cfg.items():
             BenchClass = get_benchmark_class(benchmark)
             if BenchClass:
-                benchmarks[benchmark] = BenchClass(benchmark, value, **kwargs)
+                benchmarks[benchmark] = BenchClass(benchmark, value, self.runtimes, **kwargs)
 
         return benchmarks
+
+    def _init_runtimes(self, cfg):
+        runtimes = {}
+        for runtime in cfg:
+            name = runtime['name']
+            if name == "docker":
+                runtimes[name] = DockerRuntime(runtime)
+            elif name == "llamafile":
+                runtimes[name] = LlamafileRuntime(runtime)
+            elif name == "whisperfile":
+                runtimes[name] = WhisperfileRuntime(runtime)
+            else:
+                logger.warning(f"Runtime {runtime} not supported")
+        
+        return runtimes
 
     def benchmark(self):
         print("Gathering System Info...")
@@ -141,6 +154,7 @@ class Benchmarker():
         self.benchmark_vision()
         self.benchmark_hearing()
 
+    # TODO remove these and do in a loop instead
     def benchmark_vision(self):
         self.benchmarks['vision'].benchmark()
 

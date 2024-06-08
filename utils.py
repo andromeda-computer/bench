@@ -74,9 +74,20 @@ class FileSpec(TypedDict):
 def url_downloader(files: List[FileSpec]):
     """Download multiple files to the given directory."""
 
+    # if all the files already exist then we can skip downloading
+    to_download = []
+    for file in files:
+        dest_path = os.path.join(file['dest_dir'], file['filename'])
+        if not os.path.exists(dest_path):
+            os.makedirs(file['dest_dir'], exist_ok=True)
+            to_download.append(file)
+    
+    if len(to_download) == 0:
+        return
+
     with progress:
         with ThreadPoolExecutor(max_workers=4) as pool:
-            for file in files:
+            for file in to_download:
                 dest_path = os.path.join(file['dest_dir'], file['filename'])
                 task_id = progress.add_task("download", filename=file['filename'], start=False)
                 pool.submit(copy_url, task_id, file['url'], dest_path)

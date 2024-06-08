@@ -12,14 +12,14 @@ benchmarks:
     models:
       - name: whisper-tiny
         type: hearing
-        runtime: llamafile 
+        runtime: whisperfile
         quant: q8
-        url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.tiny.q8.llamafile
+        url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.tiny.q8.bin
       - name: whisper-large-v3
         type: hearing
-        runtime: llamafile 
+        runtime: whisperfile
         quant: q8
-        url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.large-v3.q8.llamafile
+        url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.large-v3.q8.bin
     datasets:
       - name: androspeech
         type: file
@@ -38,7 +38,8 @@ benchmarks:
         context: 2048
         prompt_template: "\n\nQuestion:[img-10]{{ prompt }}\n\nAnswer:"
         stop: "<|endoftext|>"
-        url: https://huggingface.co/cjpais/moondream2-llamafile/resolve/main/moondream2-q8-050824.llamafile
+        url: https://huggingface.co/cjpais/moondream2-llamafile/resolve/main/moondream2-050824-q8.gguf
+        projector_url: https://huggingface.co/cjpais/moondream2-llamafile/resolve/main/moondream2-mmproj-050824-f16.gguf
     datasets:
       - name: VibeEval
         type: file
@@ -48,15 +49,16 @@ benchmarks:
     # add llava 1.6 and test it as well
   language:
     models:
-      - name: llama3-8B-instruct
+      - name: tinyllama-chat
         type: language
         runtime: llamafile
-        prompt_template: "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful AI assistant.<|eot_id|><|start_header_id|>User<|end_header_id|>\n{{ prompt }}<|eot_id|><|start_header_id|>Llama<|end_header_id|>"
+        # TODO can we just use the chat template in GGUF itself???!!!
+        prompt_template: "<|im_start|>system\nYou are a helpful AI assistant.<|im_end|>\n<|im_start|>user\n{{ prompt }}<|im_end|>\n<|im_start|>assistant"
         quant: q5_K_M
-        params: 8B
-        context: 8192
-        stop: "<|eot_id|>"
-        url: https://huggingface.co/Mozilla/Meta-Llama-3-8B-Instruct-llamafile/resolve/main/Meta-Llama-3-8B-Instruct.Q5_K_M.llamafile
+        context: 2048
+        stop: "</s>"
+        params: 1.1B
+        url: https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main/tinyllama-1.1b-chat-v1.0.Q5_K_M.gguf
       - name: phi-3-mini-4k-instruct
         type: language
         runtime: llamafile
@@ -65,17 +67,34 @@ benchmarks:
         params: 3.8B
         stop: "<|end|>"
         context: 4096
-        url: https://huggingface.co/Mozilla/Phi-3-mini-4k-instruct-llamafile/resolve/main/Phi-3-mini-4k-instruct.Q5_K_M.llamafile
-      - name: tinyllama-chat
+        url: https://huggingface.co/bartowski/Phi-3-mini-4k-instruct-GGUF/resolve/main/Phi-3-mini-4k-instruct-Q5_K_M.gguf
+      - name: llama3-8B-instruct
         type: language
         runtime: llamafile
-        prompt_template: "<|im_start|>system\nYou are a helpful AI assistant.<|im_end|>\n<|im_start|>user\n{{ prompt }}<|im_end|>\n<|im_start|>assistant"
+        prompt_template: "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful AI assistant.<|eot_id|><|start_header_id|>User<|end_header_id|>\n{{ prompt }}<|eot_id|><|start_header_id|>Llama<|end_header_id|>"
         quant: q5_K_M
-        context: 2048
-        stop: "</s>"
-        params: 1.1B
-        url: https://huggingface.co/Mozilla/TinyLlama-1.1B-Chat-v1.0-llamafile/resolve/main/TinyLlama-1.1B-Chat-v1.0.Q5_K_M.llamafile
-      # TODO add bigger than 7B models, vicuna? codestral? mixtral 8x7b? llama 70b
+        params: 8B
+        context: 8192
+        stop: "<|eot_id|>"
+        url: https://huggingface.co/bartowski/Meta-Llama-3-8B-Instruct-GGUF/resolve/main/Meta-Llama-3-8B-Instruct-Q5_K_M.gguf
+      - name: phi3-medium
+        type: language
+        runtime: llamafile
+        prompt_template: "<|user|>\n{{ prompt }} <|end|>\n<|assistant|>"
+        quant: q5_K_M
+        params: 14B
+        context: 131072
+        stop: "<|end|>"
+        url: https://huggingface.co/bartowski/Phi-3-medium-128k-instruct-GGUF/resolve/main/Phi-3-medium-128k-instruct-Q5_K_M.gguf
+      - name: codestral-22B
+        type: language
+        runtime: llamafile
+        prompt_template: "<s> [INST] <<SYS>>\nYou are a helpful AI assistant.\n <</SYS>>\n\n {{ prompt }} [/INST]  </s>"
+        quant: q5_K_M
+        params: 22B
+        context: 32768
+        stop: "<|end|>"
+        url: https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/resolve/main/Codestral-22B-v0.1-Q5_K_M.gguf
     datasets:
       - name: OpenOrcaShortQuestion
         type: prompt
@@ -108,14 +127,10 @@ benchmarks:
         source: "hf-api"
         key: "question"
 runtimes:
-  llamafile:
-    type: llamafile
+  - name: llamafile
     url: https://github.com/Mozilla-Ocho/llamafile/releases/download/0.8.6/llamafile-0.8.6
     version: 0.8.6
-  whisperfile:
-    type: whisperfile
-    url: "tbd"
-    version: 0.1.0
-  docker:
-    type: docker
-  # TODO support vllm, mlx, transformers, etc
+  - name: whisperfile
+    url: "https://github.com/cjpais/whisperfile/releases/download/0.1.1/whisperfile-0.1.1"
+    version: 0.1.1
+  - name: docker

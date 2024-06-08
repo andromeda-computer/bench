@@ -1,7 +1,8 @@
 from runtimes.runtime import Runtime
 
 class DockerRuntime(Runtime):
-    def download(self):
+
+    def _download(self):
         pass
 
     def benchmark(self, model, datasets):

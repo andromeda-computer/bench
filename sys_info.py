@@ -55,14 +55,6 @@ class NvidiaDevice():
             title="Nvidia Device Info",
             border_style="Green"
         )
-
-    def print(self):
-        print(f"Device: {self.name} ({self.memTotal}MB)")
-        print(f"CUDA Cores: {self.cudaCores}")
-        print(f"CUDA Compute Capability: {self.cudaCapability}")
-        print(f"Memory Bus Width: {self.memBusWidth}bit")
-        print(f"Power Limit (curr/min/max): ({self.currPwrLimit}W/{self.pwrLimitMinMax[0]/1000}W/{self.pwrLimitMinMax[1]/1000}W)")
-        print(f"Architecture: {self.architecture}")
     
 class System():
 

@@ -1,6 +1,9 @@
 env
 __pycache__
-.models
 rich/
-llama.log
+*llama.log
+
+# TODO these should be in a single dir probably
+.runtimes
 .datasets
+.models

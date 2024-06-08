@@ -15,6 +15,7 @@ from utils import kill
 from sys_info import system
 
 from rich.text import Text
+from logger import logger
 
 def read_stderr(pipe, stop_event, stderr_lines, stop_reading_event):
     while not stop_reading_event.is_set():
@@ -22,19 +23,21 @@ def read_stderr(pipe, stop_event, stderr_lines, stop_reading_event):
         if not line:
             break
         decoded_line = line.decode()
+        logger.debug(decoded_line)
         stderr_lines.append(decoded_line)
-        if "GGML_ASSERT" in decoded_line:
-            print("ERROR", decoded_line)
+        if "CUDA error: no kernel image is available for execution on the device" in decoded_line:
+            logger.info("need to recompile!", decoded_line)
             stop_event.set()
         if "compile_nvidia" in decoded_line:
-            print(decoded_line)
+            logger.info("compiling for nvidia", decoded_line)
         if "server listening" in decoded_line:
             stop_event.set()
 
 def read_stdout(pipe, stop_event, stderr_lines):
     while not stop_event.is_set():
         line = pipe.readline()
-        # print("decoded from stdout", line.decode())
+        decoded_line = line.decode()
+        logger.debug(decoded_line)
 
 class LlamafileRuntime(Runtime):
     def download(self):
@@ -50,12 +53,12 @@ class LlamafileRuntime(Runtime):
             self._benchmark_hearing(model, datasets)
         elif (model.type == "language"):
             self._benchmark_language(model, datasets)
-            print("finished language benchmark")
         else:
-            print(f"Benchmark type: {model.type} not supported")
+            logger.warning(f"Benchmark type: {model.type} not supported")
 
         self._kill_server()
 
+    # TODO abstract away the common stuff...
     def _benchmark_language(self, model, datasets):
         results = []
         count = 0
@@ -67,10 +70,7 @@ class LlamafileRuntime(Runtime):
         })
 
         for _, dataset in datasets.items():
-            with open(os.path.join(dataset.dir, "prompts.json"), "r") as f:
-                prompts = json.loads(f.read())
-
-            for prompt in prompts:
+            for prompt in dataset.data:
                 self.logger.update_row(model.name, {"status": f"{count}"})
                 data = self._build_llamacpp_request(model, prompt)
 
@@ -97,6 +97,7 @@ class LlamafileRuntime(Runtime):
     def _benchmark_vision(self, model, datasets):
         results = []
         count = 0
+        prompt = "describe this image in detail"
 
         self.logger.add_row(model.name, {
             "status": f"[{count}]", 
@@ -105,11 +106,9 @@ class LlamafileRuntime(Runtime):
 
         results = []
         for _, dataset in datasets.items():
-            for file in os.listdir(dataset.dir):
+            for image in dataset.data:
                 self.logger.update_row(model.name, {"status": f"{count}"})
-                image = os.path.join(dataset.dir, file)
-                prompt = "describe this image in detail"
-                data = self._build_llamacpp_request(model, prompt, image)
+                data = self._build_llamacpp_request(model, prompt, image.path)
 
                 system.power_start("bench_run")
                 response = requests.post(f"{self.url}/completion", json=data)
@@ -160,11 +159,9 @@ class LlamafileRuntime(Runtime):
         })
 
         for _, dataset in datasets.items():
-            for file in os.listdir(dataset.dir):
-                audio = os.path.join(dataset.dir, file)
-                fs_file = open(audio, 'rb')
+            for file in dataset.data:
                 files = {
-                    'file': (file, fs_file)
+                    'file': (file.name, open(file.path, 'rb'))
                 }
                 data = {
                     'temperature': 0,
@@ -179,7 +176,7 @@ class LlamafileRuntime(Runtime):
                 total_time = time.time() - start_time
                 response_json = response.json()
                 if (response_json.get("error")):
-                    print(f"Error: {response_json.get('error')} on {file}")
+                    logger.warning(f"Error: {response_json.get('error')} on {file}")
                     continue
                 result = HearingBenchmarkResult(response.json(), total_time, power)
                 results.append(result)
@@ -234,7 +231,7 @@ class LlamafileRuntime(Runtime):
             #                                        stderr=subprocess.PIPE)
             self.pid = proc.pid
 
-            print(f"Started llamafile server with pid: {self.pid}\ncommand string: {cmd_str}")
+            logger.verbose(f"Started llamafile server with pid: {self.pid}\ncommand string: {cmd_str}")
 
             # Start threads to read both stdout and stderr
             stderr_thread = threading.Thread(target=read_stderr, args=(proc.stderr, stop_event, stderr_lines, stop_reading_event))
@@ -253,7 +250,7 @@ class LlamafileRuntime(Runtime):
                     self._start_server(model, ngl, recompile=True, attempt=attempt + 1)
 
         except Exception as e:
-            print(e)
+            logger.error(e)
             kill(self.pid)
 
     def _kill_server(self):

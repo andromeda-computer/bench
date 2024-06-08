@@ -31,7 +31,7 @@ benchmarks:
         source: "andromeda"
   vision:
     models:
-      - name: moondream
+      - name: moondream2
         type: vision
         runtime: llamafile
         quant: q8

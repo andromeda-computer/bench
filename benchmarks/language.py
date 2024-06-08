@@ -1,3 +1,5 @@
+from logger import logger
+
 class LanguageBenchmarkResult:
 
     def __init__(self, prompt, json, power):
@@ -19,8 +21,8 @@ class LanguageBenchmarkResult:
         # Can be done at the ms level probably?
         # TODO we should be able to skip this and not use it at all.
         if power[2] == 0:
-            print("WARNING: Power is 0, setting prompt_tps_watt and generated_tps_watt to 0. Power readings will be inaccurate")
-            # print("RAW POWER READING", power, self.prompt, self.response)
+            logger.warning("Power is 0, setting prompt_tps_watt and generated_tps_watt to 0. Power readings will be inaccurate")
+            logger.debug("RAW POWER READING", power, self.prompt, self.response)
             self.prompt_tps_watt = 0
             self.generated_tps_watt = 0
         else:

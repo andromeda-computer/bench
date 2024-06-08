@@ -5,6 +5,7 @@ import os
 import requests
 
 from utils import url_downloader
+from logger import logger
 
 CONFIG_FILE = "config.yaml"
 DATASET_STORE_DIR = ".datasets"
@@ -13,7 +14,7 @@ PORT = 8314
 
 class Dataset(abc.ABC):
 
-    def __init__(self, suite, dataset):
+    def __init__(self, suite, dataset, **kwargs):
         self.suite = suite
         self.dataset = dataset
 
@@ -23,7 +24,10 @@ class Dataset(abc.ABC):
 
         self.dir = os.path.join(DATASET_STORE_DIR, suite, self.name)
 
-    def download(self):
+        self._download()
+        self.data = self._load(**kwargs)
+
+    def _download(self):
         os.makedirs(self.dir, exist_ok=True)
 
         if self.source == "hf-api":
@@ -31,7 +35,11 @@ class Dataset(abc.ABC):
         elif self.source == "andromeda":
             self._download_andromeda()
         else:
-            print(f"Source: {self.source} not supported")
+            logger.warning(f"Source: {self.source} not supported")
+
+    @abc.abstractmethod
+    def _load(self, len = None):
+        pass
 
     @abc.abstractmethod
     def _download_hf_api(self):
@@ -42,6 +50,10 @@ class Dataset(abc.ABC):
         pass
 
 class PromptDataset(Dataset):
+
+    def _load(self, len = None):
+        with open(os.path.join(self.dir, "prompts.json"), "r") as f:
+            return json.load(f)[:len]
 
     def _download_hf_api(self):
         prompt_file = os.path.join(self.dir, "prompts.json")
@@ -65,6 +77,18 @@ class PromptDataset(Dataset):
         return super()._download_andromeda()
 
 class FileDataset(Dataset):
+
+    def _load(self, len = None):
+        data = []
+        for f in os.listdir(self.dir)[:len]:
+            data.append(self.DatasetItem(os.path.join(self.dir, f), f))
+
+        return data
+    
+    class DatasetItem():
+        def __init__(self, path, name):
+            self.path = path
+            self.name = name
 
     def _download_hf_api(self):
         key = self.dataset['key']
@@ -106,14 +130,16 @@ class Model():
         self.stop = cfg.get('stop')
         self.dir = os.path.join(MODEL_STORE_DIR, self.type)
 
-    def download(self):
+        self._download()
+
+    def _download(self):
 
         if self.runtime == "llamafile":
             self._download_llamafile()
         elif self.runtime == "docker":
             self._download_docker()
         else:
-            print(f"Runtime: {self.runtime} not supported")
+            logger.warning(f"Runtime: {self.runtime} not supported")
 
     def _download_llamafile(self):
         os.makedirs(self.dir, exist_ok=True)

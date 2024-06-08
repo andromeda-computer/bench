@@ -13,17 +13,18 @@ class Benchmark(abc.ABC):
 
     def __init__(self, name, cfg, **kwargs):
         # TODO set up proper logging for each benchmark
+        print(f"Preparing {name} benchmark...")
 
         self.name = name
         self.models = {}
         self.datasets = {}
 
-        print("Setting up models...")
+        logger.info(f"Preparing models for {name}")
         for model in cfg['models']:
             name = model['name']
             self.models[name] = Model(model)
 
-        print("Setting up datasets...")
+        logger.info(f"Preparing datasets for {name}")
         for dataset in cfg['datasets']:
             name = dataset['name']
             if dataset['type'] == "file":

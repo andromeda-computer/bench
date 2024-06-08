@@ -231,7 +231,7 @@ class LlamafileRuntime(Runtime):
             #                                        stderr=subprocess.PIPE)
             self.pid = proc.pid
 
-            logger.verbose(f"Started llamafile server with pid: {self.pid}\ncommand string: {cmd_str}")
+            logger.info(f"Started llamafile server with pid: {self.pid}\ncommand string: {cmd_str}")
 
             # Start threads to read both stdout and stderr
             stderr_thread = threading.Thread(target=read_stderr, args=(proc.stderr, stop_event, stderr_lines, stop_reading_event))

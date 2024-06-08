@@ -25,7 +25,15 @@ class Dataset(abc.ABC):
         self.dir = os.path.join(DATASET_STORE_DIR, suite, self.name)
 
         self._download()
-        self.data = self._load(**kwargs)
+
+        # TODO this feels like a massive hack but it does work
+        len = None
+        if kwargs.get("fast"):
+            len = 5
+            if suite == "language":
+                len = 2
+
+        self.data = self._load(len)
 
     def _download(self):
         os.makedirs(self.dir, exist_ok=True)

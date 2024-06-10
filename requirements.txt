@@ -2,6 +2,7 @@ rich
 psutil
 py-cpuinfo
 nvidia-ml-py
+pyrsmi
 PyYAML
 requests
 jinja2

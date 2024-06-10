@@ -16,15 +16,9 @@ class LanguageBenchmarkResult:
         self.response = json['content']
         self.power_raw = power
 
-        # TODO improve this calculation by monitoring continously in python
-        # then can more accurately get the start/stop times and calculate. 
-        # Can be done at the ms level probably?
-        # TODO we should be able to skip this and not use it at all.
-        if power[2] == 0:
-            logger.warning("Power is 0, setting prompt_tps_watt and generated_tps_watt to 0. Power readings will be inaccurate")
-            logger.debug("RAW POWER READING", power, self.prompt, self.response)
-            self.prompt_tps_watt = 0
-            self.generated_tps_watt = 0
-        else:
-            self.prompt_tps_watt = self.prompt_tps / power[2]
-            self.generated_tps_watt = self.generated_tps / power[2]
+        self.avg_watts = sum(sample.watts for sample in power) / len(power)
+
+        # TODO improve this calculation by using the timings we got back from the 
+        # response, in addition to the direct power sample data.
+        self.prompt_tps_watt = self.prompt_tps / self.avg_watts
+        self.generated_tps_watt = self.generated_tps / self.avg_watts

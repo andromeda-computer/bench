@@ -7,3 +7,5 @@ rich/
 .runtimes
 .datasets
 .models
+
+test.py

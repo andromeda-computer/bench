@@ -1,5 +1,6 @@
 import abc
 import collections
+import shutil
 import cpuinfo
 import psutil
 import platform
@@ -13,6 +14,7 @@ from rich.panel import Panel
 from rich.layout import Layout
 from rich.table import Table
 
+from accelerators.apple import *
 from logger import logger
 
 def get_nvidia_arch(arch_num):
@@ -112,6 +114,8 @@ class NvidiaAccelerator(Accelerator):
         self.cudaCores = nvmlDeviceGetNumGpuCores(self.handle)
         self.architecture = get_nvidia_arch(self.arch)
 
+        super().__init__()
+
     def get_panel(self):
         return Panel.fit(
             # f'[b]Device Handle: {}[/b]\n'
@@ -124,6 +128,7 @@ class NvidiaAccelerator(Accelerator):
             f'[b]Architecture:[/b] {self.architecture}',
             title="Nvidia Device Info",
             border_style="Green",
+            height=9
         )
 
     def _get_power_usage(self):
@@ -154,12 +159,40 @@ class AMDAccelerator(Accelerator):
             f'[b]Device: {self.name}[/b]\n'
             f'[b]Memory:[/b] {self.memory:.2f}GB',
             title="AMD Device Info",
-            border_style="red"
+            border_style="red",
+            height=9
         )
 
     def _get_power_usage(self):
         watts = rocml.smi_get_device_average_power(self.index)
         return watts
+
+class AppleAccelerator(Accelerator):
+
+    def __init__(self):
+        self.soc_info = get_soc_info()
+        self.name = self.soc_info['name']
+        self.p_cores = self.soc_info['p_core_count']
+        self.e_cores = self.soc_info['e_core_count']
+        self.gpu_cores = self.soc_info['gpu_core_count']
+
+        super().__init__()
+
+        print("You will need to put your password in to get power usage for Apple devices")
+
+    def get_panel(self):
+        return Panel.fit(
+            f'\n[b]Device: {self.name}[/b]\n'
+            f'[b]P Cores:[/b] {self.p_cores}\n'
+            f'[b]E Cores:[/b] {self.e_cores}\n'
+            f'[b]GPU Cores:[/b] {self.gpu_cores}\n',
+            title="Apple Device Info",
+            border_style="white",
+            height=9
+        )
+
+    def _get_power_usage(self):
+        return 1
     
 class System():
 
@@ -167,6 +200,7 @@ class System():
         self.power_monitor = {}
 
         self.uname = platform.uname()
+        self.architecture = platform.machine()
         self.cpu_name = cpuinfo.get_cpu_info()['brand_raw']
         self.cpu_phys_cores = psutil.cpu_count(logical=False)
         self.cpu_total_cores = psutil.cpu_count(logical=True)
@@ -175,38 +209,44 @@ class System():
 
         self._init_nvidia()
         self._init_amd()
+        self._init_apple()
 
         if len(self.accelerators) > 1:
             raise SystemExit("Error: Only a single accelerator device is currently supported")
-
+        
+    def _init_apple(self):
+        if self.uname.system == "Darwin" and 'arm' in self.architecture.lower():
+            self.accelerators.append(AppleAccelerator())
 
     def _init_amd(self):
-        try:
-            rocml.smi_initialize()
-            device_count = rocml.smi_get_device_count()
+        if shutil.which("rocm-smi"):
+            try:
+                rocml.smi_initialize()
+                device_count = rocml.smi_get_device_count()
 
-            for device in range(device_count):
-                self.accelerators.append(AMDAccelerator(device))
-        except Exception as e:
-            logger.info(f"Error initializing AMD devices: {e}")
+                for device in range(device_count):
+                    self.accelerators.append(AMDAccelerator(device))
+            except Exception as e:
+                logger.info(f"Error initializing AMD devices: {e}")
     
     def _init_nvidia(self):
-        try:
-            nvmlInit()
-            device_count = nvmlDeviceGetCount()
+        if shutil.which("nvcc"):
+            try:
+                nvmlInit()
+                device_count = nvmlDeviceGetCount()
 
-            for i in range(device_count):
-                self.accelerators.append(NvidiaAccelerator(i))
+                for i in range(device_count):
+                    self.accelerators.append(NvidiaAccelerator(i))
 
-        except Exception as e:
-            logger.info(f"Error initializing Nvidia devices: {e}")
+            except Exception as e:
+                logger.info(f"Error initializing Nvidia devices: {e}")
 
     def print_sys_info(self):
         console = Console()
         panels = []
         cpu_panel = Panel.fit(
             f'\n[b]Operating System: {self.uname.system}[/b]\n'
-            f'[b]Processor: {self.cpu_name}[/b]\n'
+            f'[b]Processor: {self.cpu_name} ({self.architecture})[/b]\n'
             f'[b]Physical cores:[/b] {self.cpu_phys_cores}\n'
             f'[b]Total cores:[/b] {self.cpu_total_cores}\n'
             f'[b]Usable RAM:[/b] {self.ram:.2f}GB',

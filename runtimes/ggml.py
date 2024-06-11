@@ -10,7 +10,7 @@ from jinja2 import Template
 import requests
 from benchmarks.hearing import HearingBenchmarkResult
 from benchmarks.language import LanguageBenchmarkResult
-from config import PORT, RUNTIME_STORE_DIR, Model
+from config import HOST, PORT, RUNTIME_STORE_DIR, Model
 from runtimes.runtime import Runtime
 from utils import kill, url_downloader
 from sys_info import system
@@ -25,7 +25,7 @@ def read_stderr(pipe, stop_event, stderr_lines, stop_reading_event):
         if not line:
             break
         decoded_line = line.decode()
-        logger.debug("decoded line", decoded_line)
+        logger.debug(decoded_line)
         stderr_lines.append(decoded_line)
         if "CUDA error: no kernel image is available for execution on the device" in decoded_line:
             logger.info("need to recompile!", decoded_line)
@@ -85,6 +85,7 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
                 self.executable,
                 f"-m {model.path}",
                 f"--port {PORT}",
+                f"--host {HOST}",
                 f"--convert",
                 ">&2"
             ])
@@ -95,8 +96,8 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
                 f"--mmproj {model.projector_path}" if model.projector_path else "",
                 "-c 4096",
                 "--nobrowser",
-                "--port",
-                str(PORT),
+                f"--host {HOST}",
+                f"--port {PORT}",
                 "--recompile" if recompile else "",
                 f"-ngl {str(ngl)}" if ngl != 0 else "",
                 ">&2"
@@ -118,9 +119,13 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
             stderr_thread.start()
             stdout_thread.start()
 
+            print('waiting for server to start')
+
             # Wait until the stop_event is set
             while not stop_event.is_set():
                 pass
+
+            print("STOP EVENT SET")
 
             # Handle the situation depending on the collected stderr and stdout
             for line in stderr_lines:
@@ -131,7 +136,7 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
                     kill(self.pid)
                     return False
 
-            self.url = f"http://127.0.0.1:{PORT}"
+            self.url = f"http://{HOST}:{PORT}"
             return True
 
         except Exception as e:
@@ -149,7 +154,9 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
 class LlamafileRuntime(ExecutableGGMLRuntime):
     
         def benchmark(self, model: Model, datasets, benchmark_logger):
+            print("STARTING SERVER")
             started = self._start_server(model)
+            print("SERVER STARTED")
             if not started:
                 logger.info(f"Out of memory for model {model.name}")
                 return

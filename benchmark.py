@@ -54,6 +54,7 @@ class Benchmark(abc.ABC):
                 logger.warning(f"Runtime: {model.runtime} not supported")
                 continue
 
+            logger.info(f"Benchmarking {model.name} with {model.runtime} runtime...")
             runtime.benchmark(model, self.datasets, bench_logger)
         
         bench_logger.stop()

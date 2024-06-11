@@ -71,7 +71,8 @@ class LanguageBenchmark(Benchmark):
             "prompt tps",
             "generate tps",
             "prompt tps/watt",
-            "generate tps/watt"
+            "generate tps/watt",
+            "avg watts"
         ]
 
 class HearingBenchmark(Benchmark):
@@ -84,6 +85,7 @@ class HearingBenchmark(Benchmark):
             "total transcribe time",
             "avg speedup",
             "avg speedup/watt",
+            "avg watts"
         ]
 
 class VisionBenchmark(Benchmark):
@@ -99,7 +101,8 @@ class VisionBenchmark(Benchmark):
             "prompt tps",
             "generate tps",
             "prompt tps/watt",
-            "generate tps/watt"
+            "generate tps/watt",
+            "avg watts"
         ]
 
 def get_benchmark_class(benchmark):

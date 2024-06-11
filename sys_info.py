@@ -175,10 +175,9 @@ class AppleAccelerator(Accelerator):
         self.p_cores = self.soc_info['p_core_count']
         self.e_cores = self.soc_info['e_core_count']
         self.gpu_cores = self.soc_info['gpu_core_count']
+        self.as_power_metrics = AppleSiliconPowermetrics()
 
         super().__init__()
-
-        print("You will need to put your password in to get power usage for Apple devices")
 
     def get_panel(self):
         return Panel.fit(
@@ -192,7 +191,8 @@ class AppleAccelerator(Accelerator):
         )
 
     def _get_power_usage(self):
-        return 1
+        # sample the latest reading from system power
+        return self.as_power_metrics.get_power_usage()['system_power'] / 1000
     
 class System():
 

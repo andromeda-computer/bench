@@ -119,13 +119,9 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
             stderr_thread.start()
             stdout_thread.start()
 
-            print('waiting for server to start')
-
             # Wait until the stop_event is set
             while not stop_event.is_set():
                 pass
-
-            print("STOP EVENT SET")
 
             # Handle the situation depending on the collected stderr and stdout
             for line in stderr_lines:
@@ -154,9 +150,7 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
 class LlamafileRuntime(ExecutableGGMLRuntime):
     
         def benchmark(self, model: Model, datasets, benchmark_logger):
-            print("STARTING SERVER")
             started = self._start_server(model)
-            print("SERVER STARTED")
             if not started:
                 logger.info(f"Out of memory for model {model.name}")
                 return
@@ -201,6 +195,7 @@ class LlamafileRuntime(ExecutableGGMLRuntime):
                         "generate tps": round(sum(r.generated_tps for r in results) / len(results), 2),
                         "prompt tps/watt": round(sum(r.prompt_tps_watt for r in results) / len(results), 2),
                         "generate tps/watt": round(sum(r.generated_tps_watt for r in results) / len(results), 2),
+                        "avg watts": round(sum(r.avg_watts for r in results) / len(results), 2),
                     })
 
                     count += 1
@@ -239,6 +234,7 @@ class LlamafileRuntime(ExecutableGGMLRuntime):
                         "generate tps": round(sum(r.generated_tps for r in results) / len(results), 2),
                         "prompt tps/watt": round(sum(r.prompt_tps_watt for r in results) / len(results), 2),
                         "generate tps/watt": round(sum(r.generated_tps_watt for r in results) / len(results), 2),
+                        "avg watts": round(sum(r.avg_watts for r in results) / len(results), 2),
                     })
 
                     count += 1
@@ -312,7 +308,8 @@ class WhisperfileRuntime(ExecutableGGMLRuntime):
                         "total input seconds": round(sum(r.input_seconds for r in results), 2),
                         "total transcribe time": round(sum(r.transcribe_time for r in results), 2),
                         "avg speedup": f"{round(sum(r.speedup for r in results) / len(results), 2)}x",
-                        "avg speedup/watt": f"{round(sum(r.speedup_watt for r in results) / len(results), 2)}x"
+                        "avg speedup/watt": f"{round(sum(r.speedup_watt for r in results) / len(results), 2)}x",
+                        "avg watts": round(sum(r.avg_watts for r in results) / len(results), 2),
                     })
 
                     count += 1

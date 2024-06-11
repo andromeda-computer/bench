@@ -1,7 +1,62 @@
 # FROM https://github.com/tlkh/asitop/tree/main/asitop
 
 import os
+import re
+import subprocess
+import threading
+import time
 import psutil
+
+DATE_FORMAT = "%a %b %d %H:%M:%S %Y %z"
+
+class AppleSiliconPowermetrics:
+    def __init__(self):
+        self.ane_power = 0
+        self.cpu_power = 0
+        self.gpu_power = 0
+        self.system_power = 0
+
+        print("You will need to put your password in to get power usage for Apple devices")
+        self.process = subprocess.Popen(["sudo", "powermetrics", "-i", "10", "--samplers", "cpu_power"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.thread = threading.Thread(target=self.read_output, daemon=True)
+        self.thread.start()
+
+        self.last_update = time.time()
+
+    def read_output(self):
+        while True:
+            output = self.process.stdout.readline()
+            if output == '' and self.process.poll() is not None:
+                break
+            if output:
+                self.parse_output(str(output))
+
+    def parse_output(self, output):
+        if "Sampled system activity" in output:
+            self.last_update = time.time()
+            return
+
+        match = re.search(r'\d+(?=\smW)', output)
+
+        if match:
+            milliwatts = int(match.group())
+            if "Combined Power" in output:
+                self.system_power = milliwatts
+            elif "CPU Power" in output:
+                self.cpu_power = milliwatts
+            elif "GPU Power" in output:
+                self.gpu_power = milliwatts
+            elif "ANE Power" in output:
+                self.ane_power = milliwatts
+    
+    def get_power_usage(self):
+        return {
+            "ane_power": self.ane_power,
+            "cpu_power": self.cpu_power,
+            "gpu_power": self.gpu_power,
+            "system_power": self.system_power,
+            "last_update": self.last_update
+        }
 
 def convert_to_GB(value):
     return round(value/1024/1024/1024, 1)

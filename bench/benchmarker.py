@@ -57,11 +57,11 @@ class Benchmarker():
     def benchmark(self):
         print("Gathering System Info...")
         system.print_sys_info()
-        print("\n")
+
         self.benchmark_language()
-        print("\n")
+
         self.benchmark_vision()
-        print("\n")
+
         self.benchmark_hearing()
 
     # TODO remove these and do in a loop instead

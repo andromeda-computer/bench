@@ -91,7 +91,7 @@ class FileDataset(Dataset):
 
     def _load(self, len = None):
         data = []
-        for f in os.listdir(self.dir)[:len]:
+        for f in sorted(os.listdir(self.dir))[:len]:
             data.append(self.DatasetItem(os.path.join(self.dir, f), f))
 
         return data

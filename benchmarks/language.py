@@ -1,5 +1,3 @@
-from logger import logger
-
 class LanguageBenchmarkResult:
 
     def __init__(self, prompt, json, response, ttft):
@@ -15,11 +13,3 @@ class LanguageBenchmarkResult:
         self.generated_tps = timings['predicted_per_second']
         self.response = response
         self.ttft = ttft
-        # self.power_raw = power
-
-        # self.avg_watts = sum(sample.watts for sample in power) / len(power)
-
-        # # TODO improve this calculation by using the timings we got back from the 
-        # # response, in addition to the direct power sample data.
-        # self.prompt_tps_watt = self.prompt_tps / self.avg_watts
-        # self.generated_tps_watt = self.generated_tps / self.avg_watts

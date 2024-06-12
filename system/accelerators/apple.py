@@ -1,4 +1,3 @@
-# FROM https://github.com/tlkh/asitop/tree/main/asitop
 
 import os
 import re
@@ -6,6 +5,10 @@ import subprocess
 import threading
 import time
 import psutil
+
+from rich.panel import Panel
+
+from system.accelerators.accelerator import Accelerator
 
 DATE_FORMAT = "%a %b %d %H:%M:%S %Y %z"
 
@@ -58,6 +61,33 @@ class AppleSiliconPowermetrics:
             "last_update": self.last_update
         }
 
+class AppleAccelerator(Accelerator):
+
+    def __init__(self):
+        self.soc_info = get_soc_info()
+        self.name = self.soc_info['name']
+        self.p_cores = self.soc_info['p_core_count']
+        self.e_cores = self.soc_info['e_core_count']
+        self.gpu_cores = self.soc_info['gpu_core_count']
+        self.as_power_metrics = AppleSiliconPowermetrics()
+
+        super().__init__()
+
+    def get_panel(self):
+        return Panel.fit(
+            f'\n[b]Device: {self.name}[/b]\n'
+            f'[b]P Cores:[/b] {self.p_cores}\n'
+            f'[b]E Cores:[/b] {self.e_cores}\n'
+            f'[b]GPU Cores:[/b] {self.gpu_cores}\n',
+            title="Apple Device Info",
+            border_style="bright_white",
+            height=9
+        )
+
+    def _get_power_usage(self):
+        # sample the latest reading from system power
+        return self.as_power_metrics.get_power_usage()['system_power'] / 1000
+
 def convert_to_GB(value):
     return round(value/1024/1024/1024, 1)
 
@@ -87,6 +117,7 @@ def get_ram_metrics_dict():
     return ram_metrics_dict
 
 
+# below is from https://github.com/tlkh/asitop/tree/main/asitop
 def get_cpu_info():
     cpu_info = os.popen('sysctl -a | grep machdep.cpu').read()
     cpu_info_lines = cpu_info.split("\n")

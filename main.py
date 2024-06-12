@@ -1,6 +1,6 @@
-from benchmark import Benchmarker
-from sys_info import system
-from logger import logger
+from bench.benchmarker import Benchmarker
+from bench.system.system import system
+from bench.logger import logger
 
 import argparse
 

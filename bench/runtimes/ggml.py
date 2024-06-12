@@ -5,19 +5,16 @@ import os
 import subprocess
 import threading
 import time
-
 from jinja2 import Template
 import requests
-from benchmarks.hearing import HearingBenchmarkResult
-from benchmarks.language import LanguageBenchmarkResult
-from config import HOST, PORT, RUNTIME_STORE_DIR, Model
-from runtimes.runtime import Runtime
-from utils import kill, url_downloader
-from sys_info import system
 
-from rich.text import Text
-from logger import logger
-
+from bench.benchmarks.hearing import HearingBenchmarkResult
+from bench.benchmarks.language import LanguageBenchmarkResult
+from bench.config import HOST, PORT
+from bench.models.model import Model
+from bench.runtimes.runtime import Runtime
+from bench.utils import kill, url_downloader
+from bench.logger import logger
 
 def read_stderr(pipe, stop_event, stderr_lines, stop_reading_event):
     while not stop_reading_event.is_set():

@@ -6,7 +6,7 @@ import cpuinfo
 import psutil
 import platform
 from pynvml import *
-from pyrsmi import rocml
+from system.rocml import *
 import time
 
 # TODO this instead of rich? https://github.com/FedericoCeratto/dashing
@@ -97,7 +97,7 @@ class Accelerator(abc.ABC):
         pass
 
     def __del__(self):
-        if self.thread:
+        if hasattr(self, 'thread') and self.thread:
             self.thread.join()
 
 class NvidiaAccelerator(Accelerator):
@@ -150,14 +150,15 @@ class AMDAccelerator(Accelerator):
 
     def __init__(self, index):
         self.index = index
-        self.name = rocml.smi_get_device_name(index)
-        self.memory = rocml.smi_get_device_memory_total(index) * 1e-9
-
+        self.name = smi_get_device_name(index)
+        self.revision = smi_get_device_revision(index)
+        self.memory = smi_get_device_memory_total(index) * 1e-9
         super().__init__()
 
     def get_panel(self):
         return Panel.fit(
-            f'[b]Device: {self.name}[/b]\n'
+            f'\n\n[b]Device: {self.name}[/b]\n'
+            f'[b]Revision: 0x{self.revision:x}[/b]\n'
             f'[b]Memory:[/b] {self.memory:.2f}GB',
             title="AMD Device Info",
             border_style="red",
@@ -165,7 +166,7 @@ class AMDAccelerator(Accelerator):
         )
 
     def _get_power_usage(self):
-        watts = rocml.smi_get_device_average_power(self.index)
+        watts = smi_get_device_average_power(self.index)
         return watts
 
 class AppleAccelerator(Accelerator):
@@ -187,7 +188,7 @@ class AppleAccelerator(Accelerator):
             f'[b]E Cores:[/b] {self.e_cores}\n'
             f'[b]GPU Cores:[/b] {self.gpu_cores}\n',
             title="Apple Device Info",
-            border_style="white",
+            border_style="bright_white",
             height=9
         )
 
@@ -222,8 +223,8 @@ class System():
     def _init_amd(self):
         if shutil.which("rocm-smi"):
             try:
-                rocml.smi_initialize()
-                device_count = rocml.smi_get_device_count()
+                smi_initialize()
+                device_count = smi_get_device_count()
 
                 for device in range(device_count):
                     self.accelerators.append(AMDAccelerator(device))
@@ -252,7 +253,7 @@ class System():
             f'[b]Total cores:[/b] {self.cpu_total_cores}\n'
             f'[b]Usable RAM:[/b] {self.ram:.2f}GB',
             title="Basic System Info",
-            border_style="bright_blue",
+            border_style="white",
             height=9
         )
 

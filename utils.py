@@ -92,9 +92,19 @@ def url_downloader(files: List[FileSpec]):
                 task_id = progress.add_task("download", filename=file['filename'], start=False)
                 pool.submit(copy_url, task_id, file['url'], dest_path)
 
+def get_benchmark_color(name):
+    if name == "language":
+        return "bright_cyan"
+    elif name == "vision":
+        return "bright_blue"
+    elif name == "hearing":
+        return "bright_magenta"
+    else:
+        return "blue"
+
 # livetablemanager?
 class BenchmarkLogger():
-    def __init__(self, columns, title):
+    def __init__(self, columns, title: str):
         self.columns = columns
         self.title = title
         self.rows = {}
@@ -102,6 +112,7 @@ class BenchmarkLogger():
         self.lock = threading.Lock()
         self.update_flag = threading.Event()
         self.update_flag.set()
+        self.border_color = get_benchmark_color(title.lower())
 
     def _generate_table(self):
         table = Table(box=None)
@@ -109,7 +120,7 @@ class BenchmarkLogger():
             table.add_column(column)
         for row in self.rows.values():
             table.add_row(*[str(row.get(col, "")) for col in self.columns])
-        return Panel(table, title=self.title, border_style="blue")
+        return Panel.fit(table, title=self.title, border_style=self.border_color)
 
     def _refresh_table(self, live):
         with self.lock:

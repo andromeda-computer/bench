@@ -160,9 +160,9 @@ class LlamafileRuntime(ExecutableGGMLRuntime):
 
             # TODO call the same function just with image
             if model.type == "vision":
-                req_data = self._build_llamacpp_request(model, data)
-            elif model.type == "language":
                 req_data = self._build_llamacpp_request(model, data, data.path)
+            elif model.type == "language":
+                req_data = self._build_llamacpp_request(model, data)
             else:
                 logger.warning(f"Benchmark type: {model.type} not supported for llamafile runtime")
                 return None

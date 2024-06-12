@@ -6,7 +6,7 @@ import cpuinfo
 import psutil
 import platform
 from pynvml import *
-from system.rocml import *
+from bench.system.rocml import *
 import time
 
 # TODO this instead of rich? https://github.com/FedericoCeratto/dashing
@@ -15,8 +15,8 @@ from rich.panel import Panel
 from rich.layout import Layout
 from rich.table import Table
 
-from accelerators.apple import *
-from logger import logger
+from bench.system.accelerators.apple import *
+from bench.logger import logger
 
 def get_nvidia_arch(arch_num):
     if arch_num == 2:

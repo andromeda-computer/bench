@@ -1,7 +1,8 @@
 import abc
 import os
 
-from config import RUNTIME_STORE_DIR, Model
+from bench.config import RUNTIME_STORE_DIR
+from bench.models.model import Model
 
 class Runtime(abc.ABC):
     def __init__(self, cfg):

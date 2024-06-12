@@ -1,5 +1,5 @@
-from config import Model
-from runtimes.runtime import Runtime
+from bench.models.model import Model
+from bench.runtimes.runtime import Runtime
 
 class DockerRuntime(Runtime):
 

@@ -54,6 +54,12 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
     def _download(self):
         self.executable = self._download_executable_ggml_runtime()
 
+    def _start(self, model: Model):
+        return self._start_server(model)
+    
+    def _stop(self):
+        self._stop_server()
+
     def _download_executable_ggml_runtime(self):
         version = self.cfg.get("version", None)
         url = self.cfg.get('url', None)
@@ -149,97 +155,31 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
 
 class LlamafileRuntime(ExecutableGGMLRuntime):
     
-        def benchmark(self, model: Model, datasets, benchmark_logger):
-            started = self._start_server(model)
-            if not started:
-                logger.info(f"Out of memory for model {model.name}")
-                return
-
+        def benchmark(self, model: Model, data):
             if model.type == "vision":
-                self._benchmark_vision(model, datasets, benchmark_logger)
+                return self._benchmark_vision(model, data)
             elif model.type == "language":
-                self._benchmark_language(model, datasets, benchmark_logger)
+                return self._benchmark_language(model, data)
             else:
                 logger.warning(f"Benchmark type: {model.type} not supported for llamafile runtime")
-
-            self._stop_server()
+                return None
 
         # TODO abstract away the common stuff...
-        def _benchmark_language(self, model, datasets, benchmark_logger):
-            results = []
-            count = 0
-            # total_count = sum([len(dataset.prompts) for _, dataset in datasets.items()])
+        def _benchmark_language(self, model: Model, data):
+            req_data = self._build_llamacpp_request(model, data)
 
-            benchmark_logger.add_row(model.name, {
-                "status": f"[{count}]", 
-                "model": model.name
-            })
+            response = requests.post(f"{self.url}/completion", json=req_data)
+            result = LanguageBenchmarkResult(data, response.json())
 
-            for _, dataset in datasets.items():
-                for prompt in dataset.data:
-                    benchmark_logger.update_row(model.name, {"status": f"{count}"})
-                    data = self._build_llamacpp_request(model, prompt)
+            return result
 
-                    system.power_start("bench_run")
-                    response = requests.post(f"{self.url}/completion", json=data)
-                    power = system.power_stop("bench_run")
+        def _benchmark_vision(self, model: Model, data):
+            req_data = self._build_llamacpp_request(model, data, data.path)
 
-                    result = LanguageBenchmarkResult(prompt, response.json(), power)
-                    results.append(result)
+            response = requests.post(f"{self.url}/completion", json=req_data)
+            result = LanguageBenchmarkResult(data, response.json())
 
-                    benchmark_logger.update_row(model.name, {
-                        "status": f"{count + 1}",
-                        "# prompt tokens": sum(r.n_prompt_tokens for r in results),
-                        "# generated tokens": sum(r.n_generated_tokens for r in results),
-                        "prompt tps": round(sum(r.prompt_tps for r in results) / len(results), 2),
-                        "generate tps": round(sum(r.generated_tps for r in results) / len(results), 2),
-                        "prompt tps/watt": round(sum(r.prompt_tps_watt for r in results) / len(results), 2),
-                        "generate tps/watt": round(sum(r.generated_tps_watt for r in results) / len(results), 2),
-                        "avg watts": round(sum(r.avg_watts for r in results) / len(results), 2),
-                    })
-
-                    count += 1
-            return results
-
-        def _benchmark_vision(self, model, datasets, benchmark_logger):
-            results = []
-            count = 0
-            prompt = "describe this image in detail"
-
-            benchmark_logger.add_row(model.name, {
-                "status": f"[{count}]", 
-                "model": model.name
-            })
-
-            results = []
-            for _, dataset in datasets.items():
-                for image in dataset.data:
-                    benchmark_logger.update_row(model.name, {"status": f"{count}"})
-                    data = self._build_llamacpp_request(model, prompt, image.path)
-
-                    system.power_start("bench_run")
-                    response = requests.post(f"{self.url}/completion", json=data)
-                    power = system.power_stop("bench_run")
-
-                    result = LanguageBenchmarkResult(prompt, response.json(), power)
-                    results.append(result)
-
-                    # TODO this probably goes directly in language benchmark result or something
-                    # would have the appropriate adapters depending on the runtime
-                    benchmark_logger.update_row(model.name, {
-                        "status": f"{count + 1}",
-                        "# prompt tokens": sum(r.n_prompt_tokens for r in results),
-                        "# generated tokens": sum(r.n_generated_tokens for r in results),
-                        "prompt tps": round(sum(r.prompt_tps for r in results) / len(results), 2),
-                        "generate tps": round(sum(r.generated_tps for r in results) / len(results), 2),
-                        "prompt tps/watt": round(sum(r.prompt_tps_watt for r in results) / len(results), 2),
-                        "generate tps/watt": round(sum(r.generated_tps_watt for r in results) / len(results), 2),
-                        "avg watts": round(sum(r.avg_watts for r in results) / len(results), 2),
-                    })
-
-                    count += 1
-
-            return results
+            return result
 
         def _build_llamacpp_request(self, model, prompt, image = None):
             data = {}
@@ -258,60 +198,30 @@ class LlamafileRuntime(ExecutableGGMLRuntime):
 
 class WhisperfileRuntime(ExecutableGGMLRuntime):
 
-        def benchmark(self, model: Model, datasets, benchmark_logger):
-            started = self._start_server(model)
-            if not started:
-                logger.info(f"Out of memory for model {model.name}")
-                return
-            
+        def benchmark(self, model: Model, data):
             if (model.type == "hearing"):
-                self._benchmark_hearing(model, datasets, benchmark_logger)
+                # TODO this really doesnt make sense as a wrapper, 
+                # need to return without thinking or having to program in
+                return self._benchmark_hearing(model, data)
             else:
                 logger.warning(f"Benchmark type: {model.type} not supported for whisperfile runtime")
 
-            self._stop_server()
+        def _benchmark_hearing(self, model: Model, data):
+            files = {
+                'file': (data.name, open(data.path, 'rb'))
+            }
+            req_data = {
+                'temperature': 0,
+                'temperature_inc': 0.2,
+                'response_format': "verbose_json"
+            }
 
-        def _benchmark_hearing(self, model, datasets, benchmark_logger):
-            count = 0
-            results = []
+            response = requests.post(f"{self.url}/inference", files=files, data=req_data)
+            response_json = response.json()
+            # TODO handle errors
+            # if (response_json.get("error")):
+            #     logger.warning(f"Error: {response_json.get('error')} on {file}")
 
-            benchmark_logger.add_row(model.name, {
-                "status": f"[{count}]", 
-                "model": model.name
-            })
+            result = HearingBenchmarkResult(response_json)
 
-            for _, dataset in datasets.items():
-                for file in dataset.data:
-                    files = {
-                        'file': (file.name, open(file.path, 'rb'))
-                    }
-                    data = {
-                        'temperature': 0,
-                        'temperature_inc': 0.2,
-                        'response_format': "verbose_json"
-                    }
-
-                    start_time = time.time()
-                    system.power_start("hearing_bench_run")
-                    response = requests.post(f"{self.url}/inference", files=files, data=data)
-                    power = system.power_stop("hearing_bench_run")
-                    total_time = time.time() - start_time
-                    response_json = response.json()
-                    if (response_json.get("error")):
-                        logger.warning(f"Error: {response_json.get('error')} on {file}")
-                        continue
-                    result = HearingBenchmarkResult(response.json(), total_time, power)
-                    results.append(result)
-
-                    benchmark_logger.update_row(model.name, {
-                        "status": f"{count + 1}",
-                        "total input seconds": round(sum(r.input_seconds for r in results), 2),
-                        "total transcribe time": round(sum(r.transcribe_time for r in results), 2),
-                        "avg speedup": f"{round(sum(r.speedup for r in results) / len(results), 2)}x",
-                        "avg speedup/watt": f"{round(sum(r.speedup_watt for r in results) / len(results), 2)}x",
-                        "avg watts": round(sum(r.avg_watts for r in results) / len(results), 2),
-                    })
-
-                    count += 1
-
-            return results
+            return result

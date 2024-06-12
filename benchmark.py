@@ -1,11 +1,14 @@
 import abc
 import threading
 import yaml
+from benchmarks.hearing import HearingBenchmarkResult
+from benchmarks.language import LanguageBenchmarkResult
 from config import CONFIG_FILE, FileDataset, Model, PromptDataset
 from runtimes.docker import DockerRuntime
 from runtimes.ggml import LlamafileRuntime, WhisperfileRuntime
 from sys_info import system
 from logger import logger
+from typing import List
 
 from utils import BenchmarkLogger
 
@@ -42,9 +45,13 @@ class Benchmark(abc.ABC):
     def _benchmark_columns(self):
         pass
 
+    @abc.abstractmethod
+    def _update_row(self, model: Model, results: List):
+        pass
+
     def benchmark(self):
-        bench_logger = BenchmarkLogger(self._benchmark_columns(), self.name.capitalize())
-        update_thread = threading.Thread(target=bench_logger.start_live_updates)
+        self.bench_logger = BenchmarkLogger(self._benchmark_columns(), self.name.capitalize())
+        update_thread = threading.Thread(target=self.bench_logger.start_live_updates)
         update_thread.start()
 
         for _, model in self.models.items():
@@ -54,10 +61,46 @@ class Benchmark(abc.ABC):
                 logger.warning(f"Runtime: {model.runtime} not supported")
                 continue
 
+            # TODO model.benchmark(runtime, ...??)
+            # almost certainly this is the way
+            # the model would know what type it is so it can call the right benchmark method
+            # with type hints
             logger.info(f"Benchmarking {model.name} with {model.runtime} runtime...")
-            runtime.benchmark(model, self.datasets, bench_logger)
+            started = runtime.start(model)
+
+            if not started:
+                logger.warning(f"Failed to start runtime: {model.runtime}")
+                continue
+
+            results = []
+            count = 0
+            total_count = sum([len(dataset.data) for _, dataset in self.datasets.items()])
+            self.bench_logger.add_row(model.name, {
+                "status": f"[{count}/{total_count}]",  
+                "model": model.name
+            })
+
+            for _, dataset in self.datasets.items():
+                for data in dataset.data:
+                    count += 1
+                    self.bench_logger.update_row(model.name, {
+                        "status": f"[{count}/{total_count}]"
+                    })
+
+                    system.power_start("individual_bench_run")
+                    result = runtime.benchmark(model, data)
+                    power = system.power_stop("individual_bench_run")
+                    if result:
+                        results.append(result)
+                        # TODO calculate power stats
+                        self._update_row(model, results)
+                        # TODO runtime.benchmark(model, data, bench_logger)
+
+            runtime.stop()
+
+            # runtime.benchmark(model, self.datasets, bench_logger)
         
-        bench_logger.stop()
+        self.bench_logger.stop()
 
 
 class LanguageBenchmark(Benchmark):
@@ -70,10 +113,21 @@ class LanguageBenchmark(Benchmark):
             "# generated tokens",
             "prompt tps",
             "generate tps",
-            "prompt tps/watt",
-            "generate tps/watt",
-            "avg watts"
+            # "prompt tps/watt",
+            # "generate tps/watt",
+            # "avg watts"
         ]
+    
+    def _update_row(self, model: Model, results: List[LanguageBenchmarkResult]):
+        self.bench_logger.update_row(model.name, {
+            "# prompt tokens": sum(result.n_prompt_tokens for result in results),
+            "# generated tokens": sum(result.n_generated_tokens for result in results),
+            "prompt tps": sum(result.prompt_tps for result in results) / len(results),
+            "generate tps": sum(result.generated_tps for result in results) / len(results),
+            # "prompt tps/watt": sum(result.prompt_tps_watt for result in results) / len(results),
+            # "generate tps/watt": sum(result.generated_tps_watt for result in results) / len(results),
+            # "avg watts": sum(result.avg_watts for result in results) / len(results)
+        })
 
 class HearingBenchmark(Benchmark):
 
@@ -84,9 +138,18 @@ class HearingBenchmark(Benchmark):
             "total input seconds",
             "total transcribe time",
             "avg speedup",
-            "avg speedup/watt",
-            "avg watts"
+            # "avg speedup/watt",
+            # "avg watts"
         ]
+
+    def _update_row(self, model: Model, results: List[HearingBenchmarkResult]):
+        self.bench_logger.update_row(model.name, {
+            "total input seconds": sum(result.input_seconds for result in results),
+            "total transcribe time": sum(result.transcribe_time for result in results),
+            "avg speedup": sum(result.speedup for result in results) / len(results),
+            # "avg speedup/watt": sum(result.speedup_watt for result in results) / len(results),
+            # "avg watts": sum(result.avg_watts for result in results) / len(results)
+        })
 
 class VisionBenchmark(Benchmark):
 
@@ -97,13 +160,26 @@ class VisionBenchmark(Benchmark):
             "# images",
             "# prompt tokens",
             "# generated tokens",
-            "clip time",
+            # "clip time",
             "prompt tps",
             "generate tps",
-            "prompt tps/watt",
-            "generate tps/watt",
-            "avg watts"
+            # "prompt tps/watt",
+            # "generate tps/watt",
+            # "avg watts"
         ]
+
+    def _update_row(self, model: Model, results: List[LanguageBenchmarkResult]):
+        self.bench_logger.update_row(model.name, {
+            "# images": len(results),
+            "# prompt tokens": sum(result.n_prompt_tokens for result in results),
+            "# generated tokens": sum(result.n_generated_tokens for result in results),
+            # "clip time": sum(result.clip_time for result in results),
+            "prompt tps": sum(result.prompt_tps for result in results) / len(results),
+            "generate tps": sum(result.generated_tps for result in results) / len(results),
+            # "prompt tps/watt": sum(result.prompt_tps_watt for result in results) / len(results),
+            # "generate tps/watt": sum(result.generated_tps_watt for result in results) / len(results),
+            # "avg watts": sum(result.avg_watts for result in results) / len(results)
+        })
 
 def get_benchmark_class(benchmark):
     if benchmark == "language":
@@ -154,8 +230,8 @@ class Benchmarker():
         system.print_sys_info()
 
         print("Benchmarking...")
-        self.benchmark_language()
-        self.benchmark_vision()
+        # self.benchmark_language()
+        # self.benchmark_vision()
         self.benchmark_hearing()
 
     # TODO remove these and do in a loop instead

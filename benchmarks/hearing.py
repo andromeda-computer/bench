@@ -5,12 +5,12 @@ from sys_info import PowerMonitorSample
 class HearingBenchmarkResult():
 
     # TODO json really should be an adapter in the runtime instead.
-    def __init__(self, json, time, power: List[PowerMonitorSample]):
+    def __init__(self, json):
         self.text = json['text']
         self.input_seconds = json['duration']
         self.transcribe_time = json['transcribe_time'] / 1000
         self.speedup = self.input_seconds / self.transcribe_time
 
         # calculate avg watts used during the transcribe
-        self.avg_watts = sum(sample.watts for sample in power) / len(power)
-        self.speedup_watt = self.speedup / self.avg_watts
+        # self.avg_watts = sum(sample.watts for sample in power) / len(power)
+        # self.speedup_watt = self.speedup / self.avg_watts

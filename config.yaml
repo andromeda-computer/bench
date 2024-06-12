@@ -52,7 +52,7 @@ benchmarks:
       - name: tinyllama-chat
         type: language
         runtime: llamafile
-        # TODO can we just use the chat template in GGUF itself???!!!
+        # TODO can we just use the chat template in GGUF itself, using open ai chat completion endpoint????!!!
         prompt_template: "<|im_start|>system\nYou are a helpful AI assistant.<|im_end|>\n<|im_start|>user\n{{ prompt }}<|im_end|>\n<|im_start|>assistant"
         quant: q5_K_M
         context: 2048

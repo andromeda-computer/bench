@@ -2,7 +2,7 @@ from logger import logger
 
 class LanguageBenchmarkResult:
 
-    def __init__(self, prompt, json, ttft):
+    def __init__(self, prompt, json, response, ttft):
         timings = json['timings']
 
         self.prompt = prompt
@@ -13,7 +13,7 @@ class LanguageBenchmarkResult:
         self.n_generated_tokens = timings['predicted_n']
         self.prompt_tps = timings['prompt_per_second']
         self.generated_tps = timings['predicted_per_second']
-        self.response = json['content']
+        self.response = response
         self.ttft = ttft
         # self.power_raw = power
 

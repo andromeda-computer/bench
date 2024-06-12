@@ -173,6 +173,7 @@ class LlamafileRuntime(ExecutableGGMLRuntime):
             response = requests.post(f"{self.url}/completion", json=req_data)
 
             data = b''
+            message = ""
             for chunk in response:
                 for line in chunk.splitlines(keepends=True):
                     data += line
@@ -181,17 +182,17 @@ class LlamafileRuntime(ExecutableGGMLRuntime):
                     for row in rows:
                         json_data = json.loads(row[6:])
                         if not ttft:
-                            m = json_data['content']
                             ttft = (time.perf_counter() - t_start) * 1000
                         if json_data.get('timings'):
                             completed_response = json_data
+                        message += json_data.get('content', "")
                     data = b''
 
             if not completed_response:
                 logger.error("No completion response received")
                 return None
 
-            result = LanguageBenchmarkResult(data, completed_response, ttft)
+            result = LanguageBenchmarkResult(data, completed_response, message, ttft)
 
             return result
 

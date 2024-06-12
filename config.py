@@ -68,6 +68,8 @@ class PromptDataset(Dataset):
         if os.path.exists(prompt_file):
             return
 
+        os.makedirs(self.dir, exist_ok=True)
+
         key = self.dataset['key']
 
         response = requests.get(self.url)

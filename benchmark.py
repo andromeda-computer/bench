@@ -230,8 +230,8 @@ class Benchmarker():
         system.print_sys_info()
 
         print("Benchmarking...")
-        # self.benchmark_language()
-        # self.benchmark_vision()
+        self.benchmark_language()
+        self.benchmark_vision()
         self.benchmark_hearing()
 
     # TODO remove these and do in a loop instead

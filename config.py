@@ -70,6 +70,7 @@ class PromptDataset(Dataset):
 
         os.makedirs(self.dir, exist_ok=True)
 
+        # TODO url downloader?
         key = self.dataset['key']
 
         response = requests.get(self.url)

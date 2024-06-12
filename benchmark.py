@@ -87,21 +87,19 @@ class Benchmark(abc.ABC):
                         "status": f"[{count}/{total_count}]"
                     })
 
-                    system.power_start("individual_bench_run")
+                    # TODO it might make more sense to calculate tok/sec/watt directly here
+                    start_time = system.power_start("individual_bench_run")
                     result = runtime.benchmark(model, data)
-                    power = system.power_stop("individual_bench_run")
+                    watts, samples, end_time = system.power_stop("individual_bench_run")
+                    total_time = end_time - start_time
+
                     if result:
-                        results.append(result)
-                        # TODO calculate power stats
+                        # TODO a class?
+                        results.append({"data": result, "time": total_time, "watts": watts})
                         self._update_row(model, results)
-                        # TODO runtime.benchmark(model, data, bench_logger)
 
             runtime.stop()
-
-            # runtime.benchmark(model, self.datasets, bench_logger)
-        
         self.bench_logger.stop()
-
 
 class LanguageBenchmark(Benchmark):
 
@@ -109,24 +107,33 @@ class LanguageBenchmark(Benchmark):
         return [
             "status", 
             "model",
+            "elapsed time",
+            "avg watts",
             "# prompt tokens",
             "# generated tokens",
             "prompt tps",
             "generate tps",
-            # "prompt tps/watt",
-            # "generate tps/watt",
-            # "avg watts"
+            "avg ttft",
+            "prompt tps/watt",
+            "generate tps/watt",
         ]
     
-    def _update_row(self, model: Model, results: List[LanguageBenchmarkResult]):
+    def _update_row(self, model: Model, results):
+        avg_watts = sum(result['watts'] for result in results) / len(results)
+        prompt_tps = sum(result['data'].prompt_tps for result in results) / len(results)
+        generated_tps = sum(result['data'].generated_tps for result in results) / len(results)
+        avg_ttft = sum(result['data'].ttft for result in results) / len(results)
+
         self.bench_logger.update_row(model.name, {
-            "# prompt tokens": sum(result.n_prompt_tokens for result in results),
-            "# generated tokens": sum(result.n_generated_tokens for result in results),
-            "prompt tps": sum(result.prompt_tps for result in results) / len(results),
-            "generate tps": sum(result.generated_tps for result in results) / len(results),
-            # "prompt tps/watt": sum(result.prompt_tps_watt for result in results) / len(results),
-            # "generate tps/watt": sum(result.generated_tps_watt for result in results) / len(results),
-            # "avg watts": sum(result.avg_watts for result in results) / len(results)
+            "elapsed time": f"{round(sum(result['time'] for result in results), 2)}sec",
+            "avg watts": round(avg_watts, 2),
+            "# prompt tokens": sum(result['data'].n_prompt_tokens for result in results),
+            "# generated tokens": sum(result['data'].n_generated_tokens for result in results),
+            "prompt tps": f"[cyan]{round(prompt_tps, 2)}[/cyan]",
+            "generate tps": f"[magenta]{round(generated_tps, 2)}[/magenta]",
+            "avg ttft": f"[green]{round(avg_ttft)}ms[/green]",
+            "prompt tps/watt": f"{round(prompt_tps / avg_watts, 2)}",
+            "generate tps/watt": f"{round(generated_tps / avg_watts, 2)}",
         })
 
 class HearingBenchmark(Benchmark):
@@ -135,20 +142,25 @@ class HearingBenchmark(Benchmark):
         return [
             "status", 
             "model",
+            "elapsed time",
+            "avg watts",
             "total input seconds",
             "total transcribe time",
             "avg speedup",
-            # "avg speedup/watt",
-            # "avg watts"
+            "avg speedup/watt",
         ]
 
     def _update_row(self, model: Model, results: List[HearingBenchmarkResult]):
+        avg_watts = sum(result['watts'] for result in results) / len(results)
+        avg_speedup = sum(result['data'].speedup for result in results) / len(results)
+
         self.bench_logger.update_row(model.name, {
-            "total input seconds": sum(result.input_seconds for result in results),
-            "total transcribe time": sum(result.transcribe_time for result in results),
-            "avg speedup": sum(result.speedup for result in results) / len(results),
-            # "avg speedup/watt": sum(result.speedup_watt for result in results) / len(results),
-            # "avg watts": sum(result.avg_watts for result in results) / len(results)
+            "elapsed time": f"{round(sum(result['time'] for result in results), 2)}sec",
+            "total input seconds": round(sum(result['data'].input_seconds for result in results), 2),
+            "total transcribe time": round(sum(result['data'].transcribe_time for result in results), 2),
+            "avg speedup": f"[magenta]{round(avg_speedup, 2)}x[/magenta]",
+            "avg speedup/watt": round(avg_speedup / avg_watts, 2),
+            "avg watts": round(avg_watts, 2)
         })
 
 class VisionBenchmark(Benchmark):
@@ -157,28 +169,36 @@ class VisionBenchmark(Benchmark):
         return [
             "status", 
             "model",
-            "# images",
+            "elapsed time",
+            "avg watts",
             "# prompt tokens",
             "# generated tokens",
-            # "clip time",
             "prompt tps",
             "generate tps",
-            # "prompt tps/watt",
-            # "generate tps/watt",
-            # "avg watts"
+            "throughput",
+            "avg ttft",
+            "prompt tps/watt",
+            "generate tps/watt",
         ]
 
-    def _update_row(self, model: Model, results: List[LanguageBenchmarkResult]):
+    def _update_row(self, model: Model, results: List):
+        avg_watts = sum(result['watts'] for result in results) / len(results)
+        prompt_tps = sum(result['data'].prompt_tps for result in results) / len(results)
+        generated_tps = sum(result['data'].generated_tps for result in results) / len(results)
+        elapsed_time = sum(result['time'] for result in results)
+        avg_ttft = sum(result['data'].ttft for result in results) / len(results)
+
         self.bench_logger.update_row(model.name, {
-            "# images": len(results),
-            "# prompt tokens": sum(result.n_prompt_tokens for result in results),
-            "# generated tokens": sum(result.n_generated_tokens for result in results),
-            # "clip time": sum(result.clip_time for result in results),
-            "prompt tps": sum(result.prompt_tps for result in results) / len(results),
-            "generate tps": sum(result.generated_tps for result in results) / len(results),
-            # "prompt tps/watt": sum(result.prompt_tps_watt for result in results) / len(results),
-            # "generate tps/watt": sum(result.generated_tps_watt for result in results) / len(results),
-            # "avg watts": sum(result.avg_watts for result in results) / len(results)
+            "elapsed time": f"{round(elapsed_time)}sec",
+            "avg watts": round(avg_watts, 2),
+            "throughput": f"[purple4]{round(len(results) / elapsed_time, 2)} imgs/sec[/purple4]",
+            "# prompt tokens": sum(result['data'].n_prompt_tokens for result in results),
+            "# generated tokens": sum(result['data'].n_generated_tokens for result in results),
+            "prompt tps": f"[cyan]{round(prompt_tps, 2)}[/cyan]",
+            "generate tps": f"[magenta]{round(generated_tps, 2)}[/magenta]",
+            "avg ttft": f"[green]{round(avg_ttft)}ms[/green]",
+            "prompt tps/watt": f"{round(prompt_tps / avg_watts, 2)}",
+            "generate tps/watt": f"{round(generated_tps / avg_watts, 2)}",
         })
 
 def get_benchmark_class(benchmark):

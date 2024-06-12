@@ -2,7 +2,7 @@ from logger import logger
 
 class LanguageBenchmarkResult:
 
-    def __init__(self, prompt, json):
+    def __init__(self, prompt, json, ttft):
         timings = json['timings']
 
         self.prompt = prompt
@@ -14,6 +14,7 @@ class LanguageBenchmarkResult:
         self.prompt_tps = timings['prompt_per_second']
         self.generated_tps = timings['predicted_per_second']
         self.response = json['content']
+        self.ttft = ttft
         # self.power_raw = power
 
         # self.avg_watts = sum(sample.watts for sample in power) / len(power)

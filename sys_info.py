@@ -1,6 +1,7 @@
 import abc
 import collections
 import shutil
+from typing import List
 import cpuinfo
 import psutil
 import platform
@@ -61,7 +62,7 @@ class Accelerator(abc.ABC):
 
         self.power_monitors[name] = []
 
-    def end_power_monitor(self, name):
+    def end_power_monitor(self, name) -> List[PowerMonitorSample]:
         if name in self.power_monitors:
             samples = self.power_monitors[name]
             del self.power_monitors[name]
@@ -273,13 +274,17 @@ class System():
 
         # TODO support multiple devices
         self.accelerators[0].start_power_monitor(name)
+        return time.time()
 
     def power_stop(self, name):
         if (len(self.accelerators) == 0):
             # TODO we should have a more robust way of handling this
             raise Exception("No accelerators found") 
 
-        return self.accelerators[0].end_power_monitor(name)
+        samples = self.accelerators[0].end_power_monitor(name)
+        avg_watts = sum([sample.watts for sample in samples]) / len(samples)
+
+        return (avg_watts, samples, time.time())
 
 
 system = System()

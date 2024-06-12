@@ -156,32 +156,64 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
 class LlamafileRuntime(ExecutableGGMLRuntime):
     
         def benchmark(self, model: Model, data):
+            req_data = {}
+
+            # TODO call the same function just with image
             if model.type == "vision":
-                return self._benchmark_vision(model, data)
+                req_data = self._build_llamacpp_request(model, data)
             elif model.type == "language":
-                return self._benchmark_language(model, data)
+                req_data = self._build_llamacpp_request(model, data, data.path)
             else:
                 logger.warning(f"Benchmark type: {model.type} not supported for llamafile runtime")
                 return None
 
+            t_start = time.perf_counter()
+            ttft = None
+            completed_response = None
+            response = requests.post(f"{self.url}/completion", json=req_data)
+
+            data = b''
+            for chunk in response:
+                for line in chunk.splitlines(keepends=True):
+                    data += line
+                if data.endswith((b"\r\r", b"\n\n", b"\r\n\r\n")):
+                    rows = [l for l in data.decode().split("\n") if l.strip()]
+                    for row in rows:
+                        json_data = json.loads(row[6:])
+                        if not ttft:
+                            m = json_data['content']
+                            ttft = (time.perf_counter() - t_start) * 1000
+                        if json_data.get('timings'):
+                            completed_response = json_data
+                    data = b''
+
+            if not completed_response:
+                logger.error("No completion response received")
+                return None
+
+            result = LanguageBenchmarkResult(data, completed_response, ttft)
+
+            return result
+
         # TODO abstract away the common stuff...
-        def _benchmark_language(self, model: Model, data):
-            req_data = self._build_llamacpp_request(model, data)
+        # def _benchmark_language(self, model: Model, data):
+        #     req_data = self._build_llamacpp_request(model, data)
 
-            response = requests.post(f"{self.url}/completion", json=req_data)
-            result = LanguageBenchmarkResult(data, response.json())
+        #     # TODO use openai completions endpoint instead for better consistency across runtime implementations?
+        #     response = requests.post(f"{self.url}/completion", json=req_data)
+        #     result = LanguageBenchmarkResult(data, response.json())
 
-            return result
+        #     return result
 
-        def _benchmark_vision(self, model: Model, data):
-            req_data = self._build_llamacpp_request(model, data, data.path)
+        # def _benchmark_vision(self, model: Model, data):
+        #     req_data = self._build_llamacpp_request(model, data, data.path)
 
-            response = requests.post(f"{self.url}/completion", json=req_data)
-            result = LanguageBenchmarkResult(data, response.json())
+        #     response = requests.post(f"{self.url}/completion", json=req_data)
+        #     result = LanguageBenchmarkResult(data, response.json())
 
-            return result
+        #     return result
 
-        def _build_llamacpp_request(self, model, prompt, image = None):
+        def _build_llamacpp_request(self, model, prompt, image = None, stream = True):
             data = {}
             if image:
                 b64image = base64.b64encode(open(image, "rb").read()).decode("utf-8")
@@ -194,6 +226,7 @@ class LlamafileRuntime(ExecutableGGMLRuntime):
             data['prompt'] = Template(model.prompt_template).render(prompt=prompt)
             data['stop'] = [model.stop]
             data['n_predict'] = 1536
+            data['stream'] = stream
             return data
 
 class WhisperfileRuntime(ExecutableGGMLRuntime):

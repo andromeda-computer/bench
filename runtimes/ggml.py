@@ -168,9 +168,15 @@ class LlamafileRuntime(ExecutableGGMLRuntime):
                 return None
 
             t_start = time.perf_counter()
+            response = requests.post(f"{self.url}/completion", json=req_data)
+
+            result = self._decode_llamacpp_streaming_response(response, t_start)
+
+            return result
+
+        def _decode_llamacpp_streaming_response(self, response, t_start):
             ttft = None
             completed_response = None
-            response = requests.post(f"{self.url}/completion", json=req_data)
 
             data = b''
             message = ""
@@ -192,27 +198,7 @@ class LlamafileRuntime(ExecutableGGMLRuntime):
                 logger.error("No completion response received")
                 return None
 
-            result = LanguageBenchmarkResult(data, completed_response, message, ttft)
-
-            return result
-
-        # TODO abstract away the common stuff...
-        # def _benchmark_language(self, model: Model, data):
-        #     req_data = self._build_llamacpp_request(model, data)
-
-        #     # TODO use openai completions endpoint instead for better consistency across runtime implementations?
-        #     response = requests.post(f"{self.url}/completion", json=req_data)
-        #     result = LanguageBenchmarkResult(data, response.json())
-
-        #     return result
-
-        # def _benchmark_vision(self, model: Model, data):
-        #     req_data = self._build_llamacpp_request(model, data, data.path)
-
-        #     response = requests.post(f"{self.url}/completion", json=req_data)
-        #     result = LanguageBenchmarkResult(data, response.json())
-
-        #     return result
+            return LanguageBenchmarkResult(data, completed_response, message, ttft)
 
         def _build_llamacpp_request(self, model, prompt, image = None, stream = True):
             data = {}

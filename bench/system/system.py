@@ -114,7 +114,9 @@ class NvidiaAccelerator(Accelerator):
         self.cudaCapability = nvmlDeviceGetCudaComputeCapability(self.handle)
         self.cudaCores = nvmlDeviceGetNumGpuCores(self.handle)
         self.architecture = get_nvidia_arch(self.arch)
-
+        
+        self.prev_sample = None
+        
         super().__init__()
 
     def get_panel(self):
@@ -133,17 +135,19 @@ class NvidiaAccelerator(Accelerator):
         )
 
     def _get_power_usage(self):
-        latest_power = nvmlDeviceGetTotalEnergyConsumption(self.handle)
-        if not hasattr(self, 'start_power'):
-            self.start_power = latest_power
-            return None
-
-        # get the previous sample time
-        prev_sample = self.latest_samples[-1]
         now = time.time()
+        latest_power = nvmlDeviceGetTotalEnergyConsumption(self.handle)
+        if not self.prev_sample:
+            self.prev_sample = { "joules": latest_power, "time": time.time() }
+            return None
+        
+        # calculate watts based on the previous sample
+        print (f"latest_power: {latest_power}, prev_sample: {self.prev_sample['joules']}, time_delta: {now - self.prev_sample['time']}")
+        joules = (latest_power - self.prev_sample["joules"]) / 1000
+        watts = joules / (now - self.prev_sample["time"])
 
-        joules = (latest_power - self.start_power) / 1000
-        watts = joules / (now - prev_sample.time)
+        self.prev_sample = { "joules": latest_power, "time": now }
+
         return watts
 
 class AMDAccelerator(Accelerator):

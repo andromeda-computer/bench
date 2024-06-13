@@ -142,7 +142,6 @@ class NvidiaAccelerator(Accelerator):
             return None
         
         # calculate watts based on the previous sample
-        print (f"latest_power: {latest_power}, prev_sample: {self.prev_sample['joules']}, time_delta: {now - self.prev_sample['time']}")
         joules = (latest_power - self.prev_sample["joules"]) / 1000
         watts = joules / (now - self.prev_sample["time"])
 

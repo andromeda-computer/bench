@@ -135,19 +135,23 @@ class NvidiaAccelerator(Accelerator):
         )
 
     def _get_power_usage(self):
-        now = time.time()
-        latest_power = nvmlDeviceGetTotalEnergyConsumption(self.handle)
-        if not self.prev_sample:
-            self.prev_sample = { "joules": latest_power, "time": time.time() }
-            return None
+        return nvmlDeviceGetPowerUsage(self.handle) / 1000
+
+    # def _get_power_usage(self):
+    #     now = time.time()
+    #     latest_power = nvmlDeviceGetTotalEnergyConsumption(self.handle)
+    #     if not self.prev_sample:
+    #         self.prev_sample = { "joules": latest_power, "time": time.time() }
+    #         return None
         
-        # calculate watts based on the previous sample
-        joules = (latest_power - self.prev_sample["joules"]) / 1000
-        watts = joules / (now - self.prev_sample["time"])
+    #     # calculate watts based on the previous sample
+    #     # print (f"latest_power: {latest_power}, prev_sample: {self.prev_sample['joules']}, time_delta: {now - self.prev_sample['time']}")
+    #     joules = (latest_power - self.prev_sample["joules"]) / 1000
+    #     watts = joules / (now - self.prev_sample["time"])
 
-        self.prev_sample = { "joules": latest_power, "time": now }
+    #     self.prev_sample = { "joules": latest_power, "time": now }
 
-        return watts
+    #     return watts
 
 class AMDAccelerator(Accelerator):
 
@@ -224,7 +228,7 @@ class System():
             self.accelerators.append(AppleAccelerator())
 
     def _init_amd(self):
-        if shutil.which("rocm-smi"):
+        if shutil.which("rocm-smi") and os.path.exists("/sys/module/amdgpu/initstate"):
             try:
                 smi_initialize()
                 device_count = smi_get_device_count()

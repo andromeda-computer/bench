@@ -11,6 +11,7 @@ class Model():
         self.name = cfg['name']
         self.type = cfg['type']
         self.runtime = cfg['runtime']
+        self.quant = cfg.get('quant', 'unknown')
         self.url = cfg['url']
         self.projector_url = cfg.get('projector_url', None)
         self.filename = cfg['url'].split("/")[-1]

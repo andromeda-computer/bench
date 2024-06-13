@@ -23,6 +23,7 @@ class LanguageBenchmark(Benchmark):
         return [
             "status", 
             "model",
+            "quant",
             "elapsed time",
             "avg watts",
             "# prompt tokens",
@@ -41,8 +42,8 @@ class LanguageBenchmark(Benchmark):
         avg_ttft = sum(result['data'].ttft for result in results) / len(results)
 
         self.bench_logger.update_row(model.name, {
-            "elapsed time": f"{round(sum(result['time'] for result in results), 2)}sec",
-            "avg watts": round(avg_watts, 2),
+            "elapsed time": f"{round(sum(result['time'] for result in results), 2)} sec",
+            "avg watts": f"{round(avg_watts, 2)} W",
             "# prompt tokens": sum(result['data'].n_prompt_tokens for result in results),
             "# generated tokens": sum(result['data'].n_generated_tokens for result in results),
             "prompt tps": f"[cyan]{round(prompt_tps, 2)}[/cyan]",

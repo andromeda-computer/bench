@@ -8,6 +8,7 @@ class VisionBenchmark(Benchmark):
         return [
             "status", 
             "model",
+            "quant",
             "elapsed time",
             "avg watts",
             "# prompt tokens",
@@ -28,8 +29,8 @@ class VisionBenchmark(Benchmark):
         avg_ttft = sum(result['data'].ttft for result in results) / len(results)
 
         self.bench_logger.update_row(model.name, {
-            "elapsed time": f"{round(elapsed_time)}sec",
-            "avg watts": round(avg_watts, 2),
+            "elapsed time": f"{round(elapsed_time, 2)} sec",
+            "avg watts": f"{round(avg_watts, 2)} W",
             "throughput": f"[purple4]{round(len(results) / elapsed_time, 2)} imgs/sec[/purple4]",
             "# prompt tokens": sum(result['data'].n_prompt_tokens for result in results),
             "# generated tokens": sum(result['data'].n_generated_tokens for result in results),

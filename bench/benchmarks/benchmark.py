@@ -73,7 +73,8 @@ class Benchmark(abc.ABC):
             total_count = sum([len(dataset.data) for _, dataset in self.datasets.items()])
             self.bench_logger.add_row(model.name, {
                 "status": f"[{count}/{total_count}]",  
-                "model": model.name
+                "model": model.name,
+                "quant": model.quant,
             })
 
             for _, dataset in self.datasets.items():

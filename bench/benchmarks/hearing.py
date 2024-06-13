@@ -18,6 +18,7 @@ class HearingBenchmark(Benchmark):
         return [
             "status", 
             "model",
+            "quant",
             "elapsed time",
             "avg watts",
             "total input seconds",
@@ -36,5 +37,5 @@ class HearingBenchmark(Benchmark):
             "total transcribe time": round(sum(result['data'].transcribe_time for result in results), 2),
             "avg speedup": f"[magenta]{round(avg_speedup, 2)}x[/magenta]",
             "avg speedup/watt": round(avg_speedup / avg_watts, 2),
-            "avg watts": round(avg_watts, 2)
+            "avg watts": f"{round(avg_watts, 2)}W",
         })

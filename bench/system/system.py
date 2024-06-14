@@ -170,12 +170,13 @@ class AMDAccelerator(Accelerator):
         return watts
     
     def get_basic_info_string(self):
-        return f"{self.name.replace(' ', '-')}:{self.memory:.2f}GB"
+        return f"{self.name.replace(' ', '-')}:{self.memory:.2f}GB:{self.power_limit}W"
 
 
 class AppleAccelerator(Accelerator):
 
     def __init__(self):
+        ram_metrics = get_ram_metrics_dict()
         self.soc_info = get_soc_info()
         self.name = self.soc_info['name']
         self.p_cores = self.soc_info['p_core_count']
@@ -183,6 +184,8 @@ class AppleAccelerator(Accelerator):
         self.gpu_cores = self.soc_info['gpu_core_count']
         self.cpu_max_power = self.soc_info['cpu_max_power']
         self.gpu_max_power = self.soc_info['gpu_max_power']
+        self.power_limit = self.cpu_max_power + self.gpu_max_power
+        self.memory = self.ram_metrics['total_GB']
         self.as_power_metrics = AppleSiliconPowermetrics()
 
         super().__init__()
@@ -193,7 +196,7 @@ class AppleAccelerator(Accelerator):
             f'[b]P Cores:[/b] {self.p_cores}\n'
             f'[b]E Cores:[/b] {self.e_cores}\n'
             f'[b]GPU Cores:[/b] {self.gpu_cores}\n'
-            f'[b]Power Limit:[/b] {self.cpu_max_power + self.gpu_max_power}W',
+            f'[b]Power Limit:[/b] {self.power_limit}W',
             title="Apple Device Info",
             border_style="bright_white",
             height=9
@@ -204,7 +207,7 @@ class AppleAccelerator(Accelerator):
         return self.as_power_metrics.get_power_usage()['system_power'] / 1000
     
     def get_basic_info_string(self):
-        return f"{self.name.replace(' ', '-')}:{self.p_cores}P:{self.e_cores}E:{self.gpu_cores}GPU"
+        return f"{self.name.replace(' ', '-')}:{self.memory}:{self.power_limit}:{self.p_cores}P:{self.e_cores}E:{self.gpu_cores}GPU"
     
 class System():
 

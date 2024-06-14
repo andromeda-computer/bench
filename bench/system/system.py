@@ -176,8 +176,8 @@ class AMDAccelerator(Accelerator):
 class AppleAccelerator(Accelerator):
 
     def __init__(self):
-        ram_metrics = get_ram_metrics_dict()
         self.soc_info = get_soc_info()
+        self.ram_metrics = get_ram_metrics_dict()
         self.name = self.soc_info['name']
         self.p_cores = self.soc_info['p_core_count']
         self.e_cores = self.soc_info['e_core_count']

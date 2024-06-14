@@ -1,11 +1,11 @@
 env
 __pycache__
-rich/
 *llama.log
 
 # TODO these should be in a single dir probably
-.runtimes
-.datasets
-.models
+.runtimes/
+.datasets/
+.models/
+runs/
 
 test.py

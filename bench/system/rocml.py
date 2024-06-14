@@ -552,6 +552,13 @@ def smi_get_device_average_power(dev):
 
     return power.value * 1e-6 if rsmi_ret_ok(ret) else -1
 
+def smi_get_device_power_cap(dev):
+    """returns max power of device_id dev"""
+    power = c_uint32()
+    ret = rocm_lib.rsmi_dev_power_cap_get(dev, 0, byref(power))
+
+    return power.value * 1e-6 if rsmi_ret_ok(ret) else -1
+
 
 # XGMI fuctions
 def smi_get_device_xgmi_error_status(dev):

@@ -32,10 +32,10 @@ class HearingBenchmark(Benchmark):
         avg_speedup = sum(result['data'].speedup for result in results) / len(results)
 
         self.bench_logger.update_row(model.name, {
-            "elapsed time": f"{round(sum(result['time'] for result in results), 2)}sec",
+            "elapsed time": f"{round(sum(result['time'] for result in results), 2)}s",
+            "avg watts": f"{round(avg_watts, 2)} W",
             "total input seconds": round(sum(result['data'].input_seconds for result in results), 2),
             "total transcribe time": round(sum(result['data'].transcribe_time for result in results), 2),
             "avg speedup": f"[magenta]{round(avg_speedup, 2)}x[/magenta]",
             "avg speedup/watt": round(avg_speedup / avg_watts, 2),
-            "avg watts": f"{round(avg_watts, 2)}W",
         })

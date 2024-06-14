@@ -25,12 +25,13 @@ def read_stderr(pipe, stop_event, stderr_lines, stop_reading_event):
         logger.debug(decoded_line)
         stderr_lines.append(decoded_line)
         if "CUDA error: no kernel image is available for execution on the device" in decoded_line:
-            logger.info("need to recompile!", decoded_line)
+            # logger.info("need to recompile!", decoded_line)
             stop_event.set()
         if "compile_nvidia" in decoded_line:
-            logger.info("compiling for nvidia", decoded_line)
+            pass
+            # logger.info("compiling for nvidia", decoded_line)
         if "cudaMalloc failed: out of memory" in decoded_line:
-            logger.info("cudaMalloc failed: out of memory", decoded_line)
+            # logger.info("cudaMalloc failed: out of memory", decoded_line)
             stop_event.set()
         if "server listening" in decoded_line:
             stop_event.set()
@@ -39,7 +40,7 @@ def read_stdout(pipe, stop_event, stderr_lines):
     while not stop_event.is_set():
         line = pipe.readline()
         decoded_line = line.decode()
-        logger.debug(decoded_line)
+        # logger.debug(decoded_line)
 
 
 class ExecutableGGMLRuntime(Runtime, abc.ABC):

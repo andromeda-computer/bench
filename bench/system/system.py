@@ -207,7 +207,7 @@ class AppleAccelerator(Accelerator):
         return self.as_power_metrics.get_power_usage()['system_power'] / 1000
     
     def get_basic_info_string(self):
-        return f"{self.name.replace(' ', '-')}:{self.memory}:{self.power_limit}:{self.p_cores}P:{self.e_cores}E:{self.gpu_cores}GPU"
+        return f"{self.name.replace(' ', '-')}:{self.memory}GB:{self.power_limit}:{self.p_cores}P:{self.e_cores}E:{self.gpu_cores}GPU"
     
 class System():
 

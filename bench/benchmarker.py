@@ -1,3 +1,4 @@
+import time
 import yaml
 from typing import List
 
@@ -26,6 +27,8 @@ class Benchmarker():
     def __init__(self, **kwargs):
         cfg_file = open(CONFIG_FILE, 'r')
 
+        # a name for this benchmark run
+        self.name = round(time.time())
         self.cfg = yaml.safe_load(cfg_file)
         self.runtimes = self._init_runtimes(self.cfg['runtimes'])
         self.benchmarks = self._init_benchmarks(self.cfg['benchmarks'], **kwargs)
@@ -35,7 +38,7 @@ class Benchmarker():
         for benchmark, value in cfg.items():
             BenchClass = get_benchmark_class(benchmark)
             if BenchClass:
-                benchmarks[benchmark] = BenchClass(benchmark, value, self.runtimes, **kwargs)
+                benchmarks[benchmark] = BenchClass(benchmark, value, self.runtimes, self.name, **kwargs)
 
         return benchmarks
 

@@ -4,3 +4,4 @@ RUNTIME_STORE_DIR = ".runtimes"
 MODEL_STORE_DIR = ".models"
 PORT = 8314
 HOST = "localhost"
+RUN_STORE_DIR = "runs"

@@ -87,6 +87,10 @@ class Accelerator(abc.ABC):
             if (watts):
                 self._add_power_sample(PowerMonitorSample(watts, sample_start))
             time.sleep(0.01)
+
+    @abc.abstractmethod
+    def get_basic_info_string(self):
+        pass
         
     @abc.abstractmethod
     def get_panel(self):
@@ -114,7 +118,9 @@ class NvidiaAccelerator(Accelerator):
         self.cudaCapability = nvmlDeviceGetCudaComputeCapability(self.handle)
         self.cudaCores = nvmlDeviceGetNumGpuCores(self.handle)
         self.architecture = get_nvidia_arch(self.arch)
-
+        
+        self.prev_sample = None
+        
         super().__init__()
 
     def get_panel(self):
@@ -125,26 +131,18 @@ class NvidiaAccelerator(Accelerator):
             f'[b]CUDA Cores:[/b] {self.cudaCores}\n'
             f'[b]CUDA Compute Capability:[/b] {self.cudaCapability}\n'
             f'[b]Memory Bus Width:[/b] {self.memBusWidth}bit\n'
-            f'[b]Power Limit (curr/min/max):[/b] ({self.currPwrLimit}W/{self.pwrLimitMinMax[0]/1000}W/{self.pwrLimitMinMax[1]/1000}W)\n'
+            f'[b]Power Limit ([green]curr[/green]/min/max):[/b] ([green]{self.currPwrLimit}W[/green]/{self.pwrLimitMinMax[0]/1000}W/{self.pwrLimitMinMax[1]/1000}W)\n'
             f'[b]Architecture:[/b] {self.architecture}',
-            title="Nvidia Device Info",
+            title="NVIDIA Device Info",
             border_style="Green",
             height=9
         )
 
     def _get_power_usage(self):
-        latest_power = nvmlDeviceGetTotalEnergyConsumption(self.handle)
-        if not hasattr(self, 'start_power'):
-            self.start_power = latest_power
-            return None
-
-        # get the previous sample time
-        prev_sample = self.latest_samples[-1]
-        now = time.time()
-
-        joules = (latest_power - self.start_power) / 1000
-        watts = joules / (now - prev_sample.time)
-        return watts
+        return nvmlDeviceGetPowerUsage(self.handle) / 1000
+    
+    def get_basic_info_string(self):
+        return f"{self.name.replace(' ', '-')}:{round(self.memTotal / 1024)}GB:{self.currPwrLimit}W"
 
 class AMDAccelerator(Accelerator):
 
@@ -153,13 +151,15 @@ class AMDAccelerator(Accelerator):
         self.name = smi_get_device_name(index)
         self.revision = smi_get_device_revision(index)
         self.memory = smi_get_device_memory_total(index) * 1e-9
+        self.power_limit = smi_get_device_power_cap(index)
         super().__init__()
 
     def get_panel(self):
         return Panel.fit(
-            f'\n\n[b]Device: {self.name}[/b]\n'
+            f'\n[b]Device: {self.name}[/b]\n'
             f'[b]Revision: 0x{self.revision:x}[/b]\n'
             f'[b]Memory:[/b] {self.memory:.2f}GB',
+            f'[b]Power Limite:[/b] {self.memory:.2f}W',
             title="AMD Device Info",
             border_style="red",
             height=9
@@ -168,6 +168,10 @@ class AMDAccelerator(Accelerator):
     def _get_power_usage(self):
         watts = smi_get_device_average_power(self.index)
         return watts
+    
+    def get_basic_info_string(self):
+        return f"{self.name.replace(' ', '-')}:{self.memory:.2f}GB"
+
 
 class AppleAccelerator(Accelerator):
 
@@ -177,6 +181,8 @@ class AppleAccelerator(Accelerator):
         self.p_cores = self.soc_info['p_core_count']
         self.e_cores = self.soc_info['e_core_count']
         self.gpu_cores = self.soc_info['gpu_core_count']
+        self.cpu_max_power = self.soc_info['cpu_max_power']
+        self.gpu_max_power = self.soc_info['gpu_max_power']
         self.as_power_metrics = AppleSiliconPowermetrics()
 
         super().__init__()
@@ -187,6 +193,7 @@ class AppleAccelerator(Accelerator):
             f'[b]P Cores:[/b] {self.p_cores}\n'
             f'[b]E Cores:[/b] {self.e_cores}\n'
             f'[b]GPU Cores:[/b] {self.gpu_cores}\n',
+            f'[b]Power Limit:[/b] {self.cpu_max_power + self.gpu_max_power}W',
             title="Apple Device Info",
             border_style="bright_white",
             height=9
@@ -195,6 +202,9 @@ class AppleAccelerator(Accelerator):
     def _get_power_usage(self):
         # sample the latest reading from system power
         return self.as_power_metrics.get_power_usage()['system_power'] / 1000
+    
+    def get_basic_info_string(self):
+        return f"{self.name.replace(' ', '-')}:{self.p_cores}P:{self.e_cores}E:{self.gpu_cores}GPU"
     
 class System():
 
@@ -221,7 +231,7 @@ class System():
             self.accelerators.append(AppleAccelerator())
 
     def _init_amd(self):
-        if shutil.which("rocm-smi"):
+        if shutil.which("rocm-smi") and os.path.exists("/sys/module/amdgpu/initstate"):
             try:
                 smi_initialize()
                 device_count = smi_get_device_count()
@@ -267,6 +277,11 @@ class System():
 
         console.print(table)
         
+    def get_accelerator_info_string(self):
+        if len(self.accelerators) == 0:
+            return "No accelerators found"
+        
+        return self.accelerators[0].get_basic_info_string()
     
     def power_start(self, name):
         if (len(self.accelerators) == 0):

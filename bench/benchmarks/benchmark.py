@@ -1,23 +1,36 @@
 import abc
+import os
+import re
 import threading
+import time
+import csv
+
 from typing import List
 
+from rich.console import Console
+from rich.table import Table
+from rich.live import Live
+from rich.panel import Panel
+
+from bench.config import RUN_STORE_DIR
 from bench.logger import logger
 from bench.datasets.dataset import FileDataset, PromptDataset
 from bench.models.model import Model
-from bench.utils import BenchmarkLogger
 from bench.system.system import system
 
 class Benchmark(abc.ABC):
 
-    def __init__(self, name, cfg, runtimes, **kwargs):
+    def __init__(self, name, cfg, runtimes, benchmarker_name, **kwargs):
         # TODO set up proper logging for each benchmark
         print(f"Preparing {name} benchmark...")
 
         self.name = name
+        self.benchmarker_name = benchmarker_name
+        self.runtimes = runtimes
+
         self.models = {}
         self.datasets = {}
-        self.runtimes = runtimes
+        self.results = {}
 
         logger.info(f"Preparing models for {name}")
         for model in cfg['models']:
@@ -37,6 +50,7 @@ class Benchmark(abc.ABC):
 
         logger.info(f"Benchmark {self.name} has {len(self.models)} models and {len(self.datasets)} datasets")
 
+    # TODO set up common columns for all benchmarks
     @abc.abstractmethod
     def _benchmark_columns(self):
         pass
@@ -62,19 +76,24 @@ class Benchmark(abc.ABC):
             # the model would know what type it is so it can call the right benchmark method
             # with type hints
             logger.info(f"Benchmarking {model.name} with {model.runtime} runtime...")
+            # print(f"Benchmarking {model.name} with {model.runtime} runtime and {model.quant} quant...")
+            self.bench_logger.add_row(model.name, {
+                "status": f"[blue]starting[/blue]",  
+                "model": model.name,
+                "quant": model.quant,
+            })
             started = runtime.start(model)
 
             if not started:
-                logger.warning(f"Failed to start runtime: {model.runtime}")
+                self.bench_logger.update_row(model.name, {
+                    "status": f"[red]failed[/red]",  
+                })
+                logger.info(f"Failed to start runtime: {model.runtime}")
                 continue
 
             results = []
             count = 0
             total_count = sum([len(dataset.data) for _, dataset in self.datasets.items()])
-            self.bench_logger.add_row(model.name, {
-                "status": f"[{count}/{total_count}]",  
-                "model": model.name
-            })
 
             for _, dataset in self.datasets.items():
                 for data in dataset.data:
@@ -93,6 +112,96 @@ class Benchmark(abc.ABC):
                         # TODO a class?
                         results.append({"data": result, "time": total_time, "watts": watts})
                         self._update_row(model, results)
+            
+            self.results[model.name] = results
 
+            self.bench_logger.update_row(model.name, {
+                "status": f"[green]success[/green]"
+            })
             runtime.stop()
+
+        # sleep to make sure all the rows updated. this should happen on update instead, but shrug
+        time.sleep(1)
+        # TODO only write to file if asked to
+        self.bench_logger.write_table(self.benchmarker_name)
         self.bench_logger.stop()
+
+def get_benchmark_color(name):
+    if name == "language":
+        return "bright_cyan"
+    elif name == "vision":
+        return "bright_blue"
+    elif name == "hearing":
+        return "bright_magenta"
+    else:
+        return "blue"
+
+def remove_tags(input_string):
+    # Pattern to match any text within square brackets and the square brackets themselves
+    pattern = r'\[.*?\]'
+    # Substitute the matched pattern with an empty string
+    cleaned_string = re.sub(pattern, '', f"{input_string}")
+    return cleaned_string
+
+class BenchmarkLogger():
+    def __init__(self, columns, title: str):
+        self.columns = columns
+        self.title = title
+        self.rows = {}
+        self.console = Console()
+        self.lock = threading.Lock()
+        self.update_flag = threading.Event()
+        self.update_flag.set()
+        self.border_color = get_benchmark_color(title.lower())
+
+    def _generate_table(self):
+        table = Table(box=None)
+        for column in self.columns:
+            table.add_column(column)
+        for row in self.rows.values():
+            table.add_row(*[str(row.get(col, "")) for col in self.columns])
+        return Panel.fit(table, title=self.title, border_style=self.border_color)
+
+    def _refresh_table(self, live):
+        with self.lock:
+            live.update(self._generate_table())
+
+    def add_row(self, row_name, data):
+        with self.lock:
+            self.rows[row_name] = data
+
+    def update_row(self, row_name, data):
+        with self.lock:
+            if row_name in self.rows:
+                self.rows[row_name].update(data)
+
+    # TODO all of this feels like a hack, surely a better way
+    def start_live_updates(self, refresh_rate=4):
+        self.live = Live(self._generate_table(), refresh_per_second=refresh_rate)
+        self.update_thread = threading.Thread(target=self._run_updates)
+        self.update_thread.start()
+        with self.live:
+            self.update_thread.join()
+
+    def _run_updates(self):
+        while self.update_flag.is_set():
+            self._refresh_table(self.live)
+            time.sleep(0.1)
+
+    def write_table(self, benchmarker_name):
+        run_dir = os.path.join(RUN_STORE_DIR, f"{system.get_accelerator_info_string()}:{benchmarker_name}")
+        run_path = os.path.join(run_dir, f"{self.title.lower()}.csv")
+
+        os.makedirs(run_dir, exist_ok=True)
+
+        with open(run_path, 'w') as f:
+            writer = csv.writer(f)
+            writer.writerow(self.columns)
+            for row in self.rows.values():
+                processed_row = [remove_tags(value) for _, value in row.items()]
+                writer.writerow(processed_row)
+
+    def stop(self):
+        self.update_flag.clear()
+        if self.update_thread.is_alive():
+            self.update_thread.join()

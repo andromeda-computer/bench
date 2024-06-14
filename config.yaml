@@ -13,12 +13,12 @@ benchmarks:
       - name: whisper-tiny
         type: hearing
         runtime: whisperfile
-        quant: q8
+        quant: Q8_0
         url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.tiny.q8.bin
       - name: whisper-large-v3
         type: hearing
         runtime: whisperfile
-        quant: q8
+        quant: Q8_0
         url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.large-v3.q8.bin
     datasets:
       - name: androspeech
@@ -34,7 +34,7 @@ benchmarks:
       - name: moondream2
         type: vision
         runtime: llamafile
-        quant: q8
+        quant: Q8_0
         context: 2048
         prompt_template: "\n\nQuestion:[img-10]{{ prompt }}\n\nAnswer:"
         stop: "<|endoftext|>"
@@ -54,7 +54,7 @@ benchmarks:
         runtime: llamafile
         # TODO can we just use the chat template in GGUF itself, using open ai chat completion endpoint????!!!
         prompt_template: "<|im_start|>system\nYou are a helpful AI assistant.<|im_end|>\n<|im_start|>user\n{{ prompt }}<|im_end|>\n<|im_start|>assistant"
-        quant: q5_K_M
+        quant: Q5_K_M
         context: 2048
         stop: "</s>"
         params: 1.1B
@@ -63,7 +63,7 @@ benchmarks:
         type: language
         runtime: llamafile
         prompt_template: "<|system|>\nYou are a helpful AI assistant.<|end|>\n<|user|>\n{{ prompt }}<|end|>\n<|assistant|>"
-        quant: q5_K_M
+        quant: Q5_K_M
         params: 3.8B
         stop: "<|end|>"
         context: 4096
@@ -72,7 +72,7 @@ benchmarks:
         type: language
         runtime: llamafile
         prompt_template: "<|begin_of_text|><|start_header_id|>system<|end_header_id|>\nYou are a helpful AI assistant.<|eot_id|><|start_header_id|>User<|end_header_id|>\n{{ prompt }}<|eot_id|><|start_header_id|>Llama<|end_header_id|>"
-        quant: q5_K_M
+        quant: Q5_K_M
         params: 8B
         context: 8192
         stop: "<|eot_id|>"
@@ -81,7 +81,7 @@ benchmarks:
         type: language
         runtime: llamafile
         prompt_template: "<|user|>\n{{ prompt }} <|end|>\n<|assistant|>"
-        quant: q5_K_M
+        quant: Q5_K_M
         params: 14B
         context: 131072
         stop: "<|end|>"
@@ -90,7 +90,7 @@ benchmarks:
         type: language
         runtime: llamafile
         prompt_template: "<s> [INST] <<SYS>>\nYou are a helpful AI assistant.\n <</SYS>>\n\n {{ prompt }} [/INST]  </s>"
-        quant: q5_K_M
+        quant: Q5_K_M
         params: 22B
         context: 32768
         stop: "<|end|>"

@@ -158,8 +158,8 @@ class AMDAccelerator(Accelerator):
         return Panel.fit(
             f'\n[b]Device: {self.name}[/b]\n'
             f'[b]Revision: 0x{self.revision:x}[/b]\n'
-            f'[b]Memory:[/b] {self.memory:.2f}GB',
-            f'[b]Power Limite:[/b] {self.memory:.2f}W',
+            f'[b]Memory:[/b] {self.memory:.2f}GB\n'
+            f'[b]Power Limit:[/b] {self.power_limit}W',
             title="AMD Device Info",
             border_style="red",
             height=9
@@ -192,7 +192,7 @@ class AppleAccelerator(Accelerator):
             f'\n[b]Device: {self.name}[/b]\n'
             f'[b]P Cores:[/b] {self.p_cores}\n'
             f'[b]E Cores:[/b] {self.e_cores}\n'
-            f'[b]GPU Cores:[/b] {self.gpu_cores}\n',
+            f'[b]GPU Cores:[/b] {self.gpu_cores}\n'
             f'[b]Power Limit:[/b] {self.cpu_max_power + self.gpu_max_power}W',
             title="Apple Device Info",
             border_style="bright_white",

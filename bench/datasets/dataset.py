@@ -52,6 +52,18 @@ class Dataset(abc.ABC):
     def _download_andromeda(self):
         pass
 
+class CreationDataset(Dataset):
+
+    def _load(self, len = None):
+        with open(os.path.join(self.dir, "prompts.json"), "r") as f:
+            return json.load(f)[:len]
+
+    def _download_hf_api(self):
+        return super()._download_hf_api()
+
+    def _download_andromeda(self):
+        url_downloader([{ "url": self.url, "dest_dir": self.dir, "filename": "prompts.json" }])
+
 class PromptDataset(Dataset):
 
     def _load(self, len = None):

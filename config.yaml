@@ -8,6 +8,29 @@ benchmarks:
   #       runtime: docker
   #       quant: fp32
   #       url: cjpais/piper-http
+  creation:
+    models:
+      - name: sdxl-base-1.0
+        type: creation
+        runtime: comfy 
+        quant: fp16
+        steps: 20
+        variants:
+          - resolution: 512
+          - resolution: 1024
+      - name: sdxl-lightning-4step
+        type: creation
+        runtime: comfy
+        quant: fp16
+        steps: 4
+        variants:
+          - resolution: 512
+          - resolution: 1024
+    datasets:
+      - name: androart
+        type: creation
+        url: "https://datasets.andromeda.computer/creation/prompts.json"
+        source: "andromeda"
   hearing:
     models:
       - name: whisper-tiny

@@ -76,3 +76,6 @@ class Benchmarker():
 
     def benchmark_language(self):
         self.benchmarks['language'].benchmark()
+
+    def benchmark_creation(self):
+        self.benchmarks['creation'].benchmark()

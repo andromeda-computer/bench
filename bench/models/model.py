@@ -34,6 +34,8 @@ class Model():
             url_downloader(to_download)
         elif self.runtime == "docker":
             self._download_docker()
+        elif self.runtime == "comfy":
+            self._download_comfy()
         else:
             logger.warning(f"Runtime: {self.runtime} not supported")
 
@@ -41,4 +43,7 @@ class Model():
         url_downloader([{ "url": self.url, "dest_dir": self.dir, "filename": self.filename }])
 
     def _download_docker(self):
+        pass
+
+    def _download_comfy(self):
         pass

@@ -67,11 +67,11 @@ class Benchmarker():
         print("Gathering System Info...")
         system.print_sys_info()
 
-        # self.benchmark_language()
+        self.benchmark_language()
 
-        # self.benchmark_vision()
+        self.benchmark_vision()
 
-        # self.benchmark_hearing()
+        self.benchmark_hearing()
 
         self.benchmark_creation()
 

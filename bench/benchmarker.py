@@ -2,10 +2,12 @@ import time
 import yaml
 from typing import List
 
+from bench.benchmarks.creation import CreationBenchmark
 from bench.benchmarks.hearing import HearingBenchmark
 from bench.benchmarks.language import LanguageBenchmark
 from bench.benchmarks.vision import VisionBenchmark
 from bench.config import CONFIG_FILE
+from bench.runtimes.comfy import ComfyRuntime
 from bench.runtimes.docker import DockerRuntime
 from bench.runtimes.ggml import LlamafileRuntime, WhisperfileRuntime
 from bench.logger import logger
@@ -18,6 +20,8 @@ def get_benchmark_class(benchmark):
         return HearingBenchmark
     elif benchmark == "vision":
         return VisionBenchmark
+    elif benchmark == "creation":
+        return CreationBenchmark
     else:
         logger.warning(f"Benchmark {benchmark} not supported")
         return None
@@ -52,6 +56,8 @@ class Benchmarker():
                 runtimes[name] = LlamafileRuntime(runtime)
             elif name == "whisperfile":
                 runtimes[name] = WhisperfileRuntime(runtime)
+            elif name == "comfy":
+                runtimes[name] = ComfyRuntime(runtime)
             else:
                 logger.warning(f"Runtime {runtime} not supported")
         
@@ -61,11 +67,13 @@ class Benchmarker():
         print("Gathering System Info...")
         system.print_sys_info()
 
-        self.benchmark_language()
+        # self.benchmark_language()
 
-        self.benchmark_vision()
+        # self.benchmark_vision()
 
-        self.benchmark_hearing()
+        # self.benchmark_hearing()
+
+        self.benchmark_creation()
 
     # TODO remove these and do in a loop instead
     def benchmark_vision(self):

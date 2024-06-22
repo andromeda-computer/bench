@@ -28,7 +28,8 @@ class VisionBenchmark(Benchmark):
         elapsed_time = sum(result['time'] for result in results)
         avg_ttft = sum(result['data'].ttft for result in results) / len(results)
 
-        self.bench_logger.update_row(model.name, {
+        # model.tag should be part of self somewhere...
+        self.bench_logger.update_row(model.tag, {
             "elapsed time": f"{round(elapsed_time, 2)}s",
             "avg watts": f"{round(avg_watts, 2)} W",
             "# prompt tokens": sum(result['data'].n_prompt_tokens for result in results),

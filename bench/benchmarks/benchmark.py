@@ -14,7 +14,7 @@ from rich.panel import Panel
 
 from bench.config import RUN_STORE_DIR
 from bench.logger import logger
-from bench.datasets.dataset import FileDataset, PromptDataset
+from bench.datasets.dataset import CreationDataset, FileDataset, PromptDataset
 from bench.models.model import Model
 from bench.system.system import system
 
@@ -35,7 +35,11 @@ class Benchmark(abc.ABC):
         logger.info(f"Preparing models for {name}")
         for model in cfg['models']:
             name = model['name']
-            self.models[name] = Model(model)
+            if model.get('variants'):
+                for variant in model['variants']:
+                    self.models[f'{name}-{variant}'] = Model(model, variant)
+            else:
+                self.models[name] = Model(model)
 
         logger.info(f"Preparing datasets for {name}")
         for dataset in cfg['datasets']:
@@ -44,6 +48,8 @@ class Benchmark(abc.ABC):
                 self.datasets[name] = FileDataset(self.name, dataset, **kwargs)
             elif dataset['type'] == "prompt":
                 self.datasets[name] = PromptDataset(self.name, dataset, **kwargs)
+            elif dataset['type'] == "creation":
+                self.datasets[name] = CreationDataset(self.name, dataset, **kwargs)
             else:
                 logger.warning(f"Dataset type: {dataset['type']} not supported")
                 continue
@@ -75,9 +81,10 @@ class Benchmark(abc.ABC):
             # almost certainly this is the way
             # the model would know what type it is so it can call the right benchmark method
             # with type hints
+            # also would support somtehing like resolution much nicer.
             logger.info(f"Benchmarking {model.name} with {model.runtime} runtime...")
             # print(f"Benchmarking {model.name} with {model.runtime} runtime and {model.quant} quant...")
-            self.bench_logger.add_row(model.name, {
+            self.bench_logger.add_row(model.tag, {
                 "status": f"[blue]starting[/blue]",  
                 "model": model.name,
                 "quant": model.quant,
@@ -85,7 +92,7 @@ class Benchmark(abc.ABC):
             started = runtime.start(model)
 
             if not started:
-                self.bench_logger.update_row(model.name, {
+                self.bench_logger.update_row(model.tag, {
                     "status": f"[red]failed[/red]",  
                 })
                 logger.info(f"Failed to start runtime: {model.runtime}")
@@ -98,7 +105,7 @@ class Benchmark(abc.ABC):
             for _, dataset in self.datasets.items():
                 for data in dataset.data:
                     count += 1
-                    self.bench_logger.update_row(model.name, {
+                    self.bench_logger.update_row(model.tag, {
                         "status": f"[{count}/{total_count}]"
                     })
 

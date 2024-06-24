@@ -6,3 +6,4 @@ pyrsmi
 PyYAML
 requests
 jinja2
+websocket-client

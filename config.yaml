@@ -8,6 +8,37 @@ benchmarks:
   #       runtime: docker
   #       quant: fp32
   #       url: cjpais/piper-http
+  creation:
+    models:
+      - name: sdxl-base-1.0
+        url: https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors
+        type: creation
+        runtime: comfy 
+        # workflow_url: 
+        quant: fp16
+        steps: 20
+        scheduler: "normal"
+        cfg_scale: 8
+        variants:
+          - resolution: 512
+          - resolution: 1024
+      - name: sdxl-lightning-4step
+        url: https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors
+        type: creation
+        runtime: comfy
+        # workflow_url: 
+        quant: fp16
+        steps: 4
+        scheduler: "sgm_uniform"
+        cfg_scale: 1.0
+        variants:
+          - resolution: 512
+          - resolution: 1024
+    datasets:
+      - name: androart
+        type: creation
+        url: "https://datasets.andromeda.computer/creation/prompts.json"
+        source: "andromeda"
   hearing:
     models:
       - name: whisper-tiny
@@ -134,3 +165,4 @@ runtimes:
     url: "https://github.com/cjpais/whisperfile/releases/download/0.1.1/whisperfile-0.1.1"
     version: 0.1.1
   - name: docker
+  - name: comfy

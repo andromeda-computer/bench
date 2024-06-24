@@ -2,14 +2,18 @@ import time
 import yaml
 from typing import List
 
+from bench.benchmarks.creation import CreationBenchmark
 from bench.benchmarks.hearing import HearingBenchmark
 from bench.benchmarks.language import LanguageBenchmark
 from bench.benchmarks.vision import VisionBenchmark
 from bench.config import CONFIG_FILE
+from bench.runtimes.comfy import ComfyRuntime
 from bench.runtimes.docker import DockerRuntime
 from bench.runtimes.ggml import LlamafileRuntime, WhisperfileRuntime
 from bench.logger import logger
 from bench.system.system import system
+
+ALL_BENCHMARKS = ["language", "hearing", "vision", "creation"]
 
 def get_benchmark_class(benchmark):
     if benchmark == "language":
@@ -18,6 +22,8 @@ def get_benchmark_class(benchmark):
         return HearingBenchmark
     elif benchmark == "vision":
         return VisionBenchmark
+    elif benchmark == "creation":
+        return CreationBenchmark
     else:
         logger.warning(f"Benchmark {benchmark} not supported")
         return None
@@ -52,27 +58,25 @@ class Benchmarker():
                 runtimes[name] = LlamafileRuntime(runtime)
             elif name == "whisperfile":
                 runtimes[name] = WhisperfileRuntime(runtime)
+            elif name == "comfy":
+                runtimes[name] = ComfyRuntime(runtime)
             else:
                 logger.warning(f"Runtime {runtime} not supported")
         
         return runtimes
 
-    def benchmark(self):
+    def benchmark(self, benchmark: str):
         print("Gathering System Info...")
         system.print_sys_info()
 
-        self.benchmark_language()
+        to_run = ALL_BENCHMARKS
+        if benchmark != "all":
+            to_run = benchmark.split(',')
 
-        self.benchmark_vision()
+        logger.info(f"Running benchmarks: {to_run}")
 
-        self.benchmark_hearing()
-
-    # TODO remove these and do in a loop instead
-    def benchmark_vision(self):
-        self.benchmarks['vision'].benchmark()
-
-    def benchmark_hearing(self):
-        self.benchmarks['hearing'].benchmark()
-
-    def benchmark_language(self):
-        self.benchmarks['language'].benchmark()
+        for bench in to_run:
+            if bench in self.benchmarks:
+                self.benchmarks[bench].benchmark()
+            else:
+                logger.warning(f"Benchmark {bench} not supported")

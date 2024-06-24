@@ -13,6 +13,8 @@ from bench.runtimes.ggml import LlamafileRuntime, WhisperfileRuntime
 from bench.logger import logger
 from bench.system.system import system
 
+ALL_BENCHMARKS = ["language", "hearing", "vision", "creation"]
+
 def get_benchmark_class(benchmark):
     if benchmark == "language":
         return LanguageBenchmark
@@ -63,27 +65,18 @@ class Benchmarker():
         
         return runtimes
 
-    def benchmark(self):
+    def benchmark(self, benchmark: str):
         print("Gathering System Info...")
         system.print_sys_info()
 
-        self.benchmark_language()
+        to_run = ALL_BENCHMARKS
+        if benchmark != "all":
+            to_run = benchmark.split(',')
 
-        self.benchmark_vision()
+        logger.info(f"Running benchmarks: {to_run}")
 
-        self.benchmark_hearing()
-
-        self.benchmark_creation()
-
-    # TODO remove these and do in a loop instead
-    def benchmark_vision(self):
-        self.benchmarks['vision'].benchmark()
-
-    def benchmark_hearing(self):
-        self.benchmarks['hearing'].benchmark()
-
-    def benchmark_language(self):
-        self.benchmarks['language'].benchmark()
-
-    def benchmark_creation(self):
-        self.benchmarks['creation'].benchmark()
+        for bench in to_run:
+            if bench in self.benchmarks:
+                self.benchmarks[bench].benchmark()
+            else:
+                logger.warning(f"Benchmark {bench} not supported")

@@ -12,6 +12,7 @@ def main():
     parser.add_argument('--debug', action='store_true', default=False, help='Enable debugging output.')
     parser.add_argument('--info', action='store_true', default=False, help='Display system information without running the benchmark')
     parser.add_argument('--download', action='store_true', default=False, help='Download the models and datasets without running the benchmark')
+    parser.add_argument('--benchmark', type=str, default='all', help='Specify the benchmark to run. Comma separated list of language, hearing, vision, creation. Default is all.')
     # parser.add_argument('--recompile', action='store_true', default=False, help='Recompile the runtime cod')
     # parser.add_argument('--cpu', type=int, help='Specify the number of CPU cores to use')
     # parser.add_argument('--download_path', type=str, help='Specify the download path')
@@ -30,7 +31,7 @@ def main():
     benchmarker = Benchmarker(**vars(args))
 
     if not args.download:
-        benchmarker.benchmark()
+        benchmarker.benchmark(args.benchmark)
 
 if __name__ == '__main__':
     main()

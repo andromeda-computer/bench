@@ -126,6 +126,15 @@ benchmarks:
         context: 32768
         stop: "<|end|>"
         url: https://huggingface.co/bartowski/Codestral-22B-v0.1-GGUF/resolve/main/Codestral-22B-v0.1-Q5_K_M.gguf
+      - name: gemma2-27B
+        type: language
+        runtime: llamafile
+        prompt_template: "<start_of_turn>user\n{{ prompt }}<end_of_turn>\n<start_of_turn>model"
+        quant: Q5_K_M
+        params: 22B
+        context: 32768
+        stop: "<|end|>"
+        url: https://huggingface.co/bartowski/gemma-2-27b-it-GGUF/resolve/main/gemma-2-27b-it-Q5_K_M.gguf
     datasets:
       - name: OpenOrcaShortQuestion
         type: prompt
@@ -159,8 +168,8 @@ benchmarks:
         key: "question"
 runtimes:
   - name: llamafile
-    url: https://github.com/Mozilla-Ocho/llamafile/releases/download/0.8.6/llamafile-0.8.6
-    version: 0.8.6
+    url: https://github.com/Mozilla-Ocho/llamafile/releases/download/0.8.6/llamafile-0.8.9
+    version: 0.8.9
   - name: whisperfile
     url: "https://github.com/cjpais/whisperfile/releases/download/0.1.1/whisperfile-0.1.1"
     version: 0.1.1

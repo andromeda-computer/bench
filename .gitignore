@@ -9,3 +9,5 @@ __pycache__
 runs/
 
 test.py
+
+.DS_Store

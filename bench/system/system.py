@@ -176,6 +176,10 @@ class AMDAccelerator(Accelerator):
 class AppleAccelerator(Accelerator):
 
     def __init__(self):
+        if os.geteuid() != 0:
+            print("Error: This script must be run as root on MacOS to gather powermetric")
+            sys.exit(1)
+
         self.soc_info = get_soc_info()
         self.ram_metrics = get_ram_metrics_dict()
         self.name = self.soc_info['name']

@@ -7,6 +7,8 @@ Benchmarks a bunch of AI workloads. Currently:
 * Speech To Text Models (via whisperfile/whisper.cpp runtime)
 * Diffusion Models (via ComfyUI)
 
+Collects the following info: TBD write this
+
 ## Running
 
 0. not necessary but create a venv and activate it (`python -m venv env && source ./env/bin/activate`)

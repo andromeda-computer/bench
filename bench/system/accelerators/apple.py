@@ -7,7 +7,47 @@ import threading
 import time
 import psutil
 
+from rich.panel import Panel
+
+from bench.system.accelerators.accelerator import Accelerator
+
 DATE_FORMAT = "%a %b %d %H:%M:%S %Y %z"
+
+class AppleAccelerator(Accelerator):
+
+    def __init__(self):
+        self.soc_info = get_soc_info()
+        self.ram_metrics = get_ram_metrics_dict()
+        self.name = self.soc_info['name']
+        self.p_cores = self.soc_info['p_core_count']
+        self.e_cores = self.soc_info['e_core_count']
+        self.gpu_cores = self.soc_info['gpu_core_count']
+        self.cpu_max_power = self.soc_info['cpu_max_power']
+        self.gpu_max_power = self.soc_info['gpu_max_power']
+        self.power_limit = self.cpu_max_power + self.gpu_max_power
+        self.memory = self.ram_metrics['total_GB']
+        self.as_power_metrics = AppleSiliconPowermetrics()
+
+        super().__init__()
+
+    def get_panel(self):
+        return Panel.fit(
+            f'\n[b]Device: {self.name}[/b]\n'
+            f'[b]P Cores:[/b] {self.p_cores}\n'
+            f'[b]E Cores:[/b] {self.e_cores}\n'
+            f'[b]GPU Cores:[/b] {self.gpu_cores}\n'
+            f'[b]Power Limit:[/b] {self.power_limit}W',
+            title="Apple Device Info",
+            border_style="bright_white",
+            height=9
+        )
+
+    def _get_power_usage(self):
+        # sample the latest reading from system power
+        return self.as_power_metrics.get_power_usage()['system_power'] / 1000
+    
+    def get_basic_info_string(self):
+        return f"{self.name.replace(' ', '-')}:{self.memory}GB:{self.power_limit}:{self.p_cores}P:{self.e_cores}E:{self.gpu_cores}GPU"
 
 class AppleSiliconPowermetrics:
     def __init__(self):

@@ -71,6 +71,7 @@ class Benchmark(abc.ABC):
         update_thread.start()
 
         for _, model in self.models.items():
+            time.sleep(1)
             runtime = self.runtimes.get(model.runtime, None)
 
             if not runtime:

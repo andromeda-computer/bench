@@ -245,16 +245,15 @@ class System():
                 logger.info(f"Error initializing AMD devices: {e}")
     
     def _init_nvidia(self):
-        if shutil.which("nvcc"):
-            try:
-                nvmlInit()
-                device_count = nvmlDeviceGetCount()
+        try:
+            nvmlInit()
+            device_count = nvmlDeviceGetCount()
 
-                for i in range(device_count):
-                    self.accelerators.append(NvidiaAccelerator(i))
+            for i in range(device_count):
+                self.accelerators.append(NvidiaAccelerator(i))
 
-            except Exception as e:
-                logger.info(f"Error initializing Nvidia devices: {e}")
+        except Exception as e:
+            logger.info(f"Error initializing Nvidia devices: {e}")
 
     def print_sys_info(self):
         console = Console()
@@ -297,9 +296,12 @@ class System():
 
     def power_stop(self, name):
         if (len(self.accelerators) == 0):
-            # TODO we should have a more robust way of handling this
+            # TODO we should have a more robust way of handling this (just use cpu)
+            # should imply # GPU layers is 0 for sure.
             raise Exception("No accelerators found") 
 
+        # TODO instead of always picking index 0, we should have a way to specify the device
+        # probably by prompting the user which GPU's to use, and how to use them. 
         samples = self.accelerators[0].end_power_monitor(name)
         avg_watts = sum([sample.watts for sample in samples]) / len(samples)
 

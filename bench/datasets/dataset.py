@@ -24,8 +24,11 @@ class Dataset(abc.ABC):
         self._download()
 
         # TODO this feels like a massive hack but it does work
-        len = None
+        if kwargs.get("full"):
+            len = None
         if kwargs.get("fast"):
+            len = 1
+        else:
             len = 5
             if suite == "language":
                 len = 2

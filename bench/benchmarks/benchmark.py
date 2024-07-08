@@ -132,6 +132,8 @@ class Benchmark(abc.ABC):
         # TODO only write to file if asked to
         self.bench_logger.write_table(self.benchmarker_name)
         self.bench_logger.stop()
+        # make sure we are actually stopped before continuing
+        time.sleep(2)
 
 def get_benchmark_color(name):
     if name == "language":
@@ -140,6 +142,8 @@ def get_benchmark_color(name):
         return "bright_blue"
     elif name == "hearing":
         return "bright_magenta"
+    elif name == "creation":
+        return "bright_yellow"
     else:
         return "blue"
 

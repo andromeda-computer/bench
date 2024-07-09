@@ -26,7 +26,7 @@ class Dataset(abc.ABC):
         # TODO this feels like a massive hack but it does work
         if kwargs.get("full"):
             len = None
-        if kwargs.get("fast"):
+        elif kwargs.get("fast"):
             len = 1
         else:
             len = 5

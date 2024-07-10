@@ -13,7 +13,7 @@ Collects the following info: TBD write this
 
 0. not necessary but create a venv and activate it (`python -m venv env && source ./env/bin/activate`)
 1. `pip install -r requirements.txt`
-2. `python main.py --fast`
+2. `python main.py`
 
 ## NVIDIA GPU's
 
@@ -52,6 +52,6 @@ make sure `libstdc++-12-dev` is installed `sudo apt install libstdc++-12-dev`
 
 ## Apple Devices
 
-You shouldn't need to do anything. Just run with `sudo python main.py --fast` instead. If you run without sudo, power metrics from the system cannot be captured. In the future you may optionally not collect power metrics, but for now you must.
+You shouldn't need to do anything. Just run with `sudo python main.py` instead. If you run without sudo, power metrics from the system cannot be captured. In the future you may optionally not collect power metrics, but for now you must.
 
 ## Dockerfile

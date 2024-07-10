@@ -10,8 +10,8 @@ import requests
 
 from bench.benchmarks.hearing import HearingBenchmarkResult
 from bench.benchmarks.language import LanguageBenchmarkResult
+from bench.benchmarks.model import Model
 from bench.config import HOST, PORT
-from bench.models.model import Model
 from bench.runtimes.runtime import Runtime
 from bench.utils import kill, url_downloader
 from bench.logger import logger
@@ -153,7 +153,7 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
 
 class LlamafileRuntime(ExecutableGGMLRuntime):
     
-        def benchmark(self, model: Model, data):
+        def benchmark(self, model: Model, data, config = None):
             req_data = {}
 
             # TODO call the same function just with image
@@ -216,7 +216,7 @@ class LlamafileRuntime(ExecutableGGMLRuntime):
 
 class WhisperfileRuntime(ExecutableGGMLRuntime):
 
-        def benchmark(self, model: Model, data):
+        def benchmark(self, model: Model, data, config = None):
             if (model.type == "hearing"):
                 # TODO this really doesnt make sense as a wrapper, 
                 # need to return without thinking or having to program in

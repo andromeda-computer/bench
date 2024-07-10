@@ -1,33 +1,28 @@
 from typing import List
 
 from bench.benchmarks.benchmark import Benchmark
-from bench.models.model import Model
+from bench.benchmarks.benchmark_test import BenchmarkTest
 
 class HearingBenchmarkResult():
 
     # TODO json really should be an adapter in the runtime instead.
     def __init__(self, json):
         self.text = json['text']
-        self.input_seconds = json['duration']
-        self.transcribe_time = json['transcribe_time'] / 1000
-        self.speedup = self.input_seconds / self.transcribe_time
+        self.input_seconds = (json['duration'])
+        self.transcribe_time = (json['transcribe_time'] / 1000)
+        self.speedup = (self.input_seconds / self.transcribe_time)
 
 class HearingBenchmark(Benchmark):
 
     def _benchmark_columns(self):
         return [
-            "status", 
-            "model",
-            "quant",
-            "elapsed time",
-            "avg watts",
             "total input seconds",
             "total transcribe time",
             "avg speedup",
             "avg speedup/watt",
         ]
 
-    def _update_row(self, model: Model, results: List):
+    def _update_row(self, model: BenchmarkTest, results: List):
         avg_watts = sum(result['watts'] for result in results) / len(results)
         avg_speedup = sum(result['data'].speedup for result in results) / len(results)
 

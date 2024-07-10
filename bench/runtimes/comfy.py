@@ -4,7 +4,7 @@ import time
 import uuid
 from bench import logger
 from bench.benchmarks.creation import CreationBenchmarkResult
-from bench.models.model import Model
+from bench.benchmarks.benchmark_test import BenchmarkTest
 from bench.runtimes.runtime import Runtime
 import websocket
 import urllib.request
@@ -112,28 +112,28 @@ class ComfyRuntime(Runtime):
     def _download(self):
         pass
 
-    def _start(self, model: Model):
+    def _start(self, model: BenchmarkTest):
         return True
 
     def _stop(self):
         return True
 
-    def benchmark(self, model: Model, data):
+    def benchmark(self, model: BenchmarkTest, data, config):
         if (model.type == "creation"):
-            return self._benchmark_creation(model, data)
+            return self._benchmark_creation(model, data, config)
         else:
             logger.warning(f"Model type: {model.type} not supported for comfy runtime")
             return None
     
-    def _benchmark_creation(self, model: Model, data):
+    def _benchmark_creation(self, model: BenchmarkTest, data, config):
         req = BASE_REQ.copy()
 
         req['4']['inputs']['ckpt_name'] = model.filename
         req['3']['inputs']['steps'] = model.steps
         req['3']['inputs']['scheduler'] = model.scheduler
         req['3']['inputs']['cfg'] = model.cfg_scale
-        req['5']['inputs']['width'] = model.resolution
-        req['5']['inputs']['height'] = model.resolution
+        req['5']['inputs']['width'] = config['resolution']
+        req['5']['inputs']['height'] = config['resolution']
         req['6']['inputs']['text'] = data['prompt']
         req['7']['inputs']['text'] = data['negative']
 

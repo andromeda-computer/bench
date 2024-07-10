@@ -1,16 +1,11 @@
 from typing import List
 from bench.benchmarks.benchmark import Benchmark
-from bench.models.model import Model
+from bench.benchmarks.benchmark_test import BenchmarkTest
 
 class VisionBenchmark(Benchmark):
 
     def _benchmark_columns(self):
         return [
-            "status", 
-            "model",
-            "quant",
-            "elapsed time",
-            "avg watts",
             "# prompt tokens",
             "# generated tokens",
             "prompt tps",
@@ -21,7 +16,7 @@ class VisionBenchmark(Benchmark):
             "generate tps/watt",
         ]
 
-    def _update_row(self, model: Model, results: List):
+    def _update_row(self, model: BenchmarkTest, results: List):
         avg_watts = sum(result['watts'] for result in results) / len(results)
         prompt_tps = sum(result['data'].prompt_tps for result in results) / len(results)
         generated_tps = sum(result['data'].generated_tps for result in results) / len(results)

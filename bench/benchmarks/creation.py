@@ -1,29 +1,23 @@
 
 from typing import List
 from bench.benchmarks.benchmark import Benchmark
-from bench.models.model import Model
-
+from bench.benchmarks.benchmark_test import BenchmarkTest
 
 class CreationBenchmarkResult():
 
     def __init__(self, total_time, raw_k_samp_time):
-        self.total_time = total_time
-        self.raw_k_samp_time = raw_k_samp_time
-        self.k_samp_time = sum(raw_k_samp_time)
-        self.k_samp_percentage = self.k_samp_time / self.total_time
-        self.avg_iter_sec = len(raw_k_samp_time) / self.k_samp_time
-        self.avg_sec_iter = self.k_samp_time / len(raw_k_samp_time)
+        self.total_time = (total_time)
+        self.raw_k_samp_time = (raw_k_samp_time)
+        self.k_samp_time = (sum(raw_k_samp_time))
+        self.k_samp_percentage = (self.k_samp_time / self.total_time)
+        self.avg_iter_sec = (len(raw_k_samp_time) / self.k_samp_time)
+        self.avg_sec_iter = (self.k_samp_time / len(raw_k_samp_time))
 
 class CreationBenchmark(Benchmark):
 
     def _benchmark_columns(self):
         return [
-            "status",
-            "model",
             "resolution",
-            "quant",
-            "elapsed time",
-            "avg watts",
             # "k_samp time",
             # "k_samp percentage",
             "avg iter/sec",
@@ -32,7 +26,7 @@ class CreationBenchmark(Benchmark):
             "avg iter/sec/watt",
         ]
     
-    def _update_row(self, model: Model, results: List):
+    def _update_row(self, model: BenchmarkTest, results: List):
         avg_watts = sum(result['watts'] for result in results) / len(results)
         avg_iter_sec = sum(result['data'].avg_iter_sec for result in results) / len(results)
         avg_sec_iter = sum(result['data'].avg_sec_iter for result in results) / len(results)

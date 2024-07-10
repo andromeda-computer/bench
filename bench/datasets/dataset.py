@@ -128,8 +128,12 @@ class FileDataset(Dataset):
         response = requests.get(f"{self.url}/metadata.json")
         metadata = response.json()
 
+        files = []
+
         for row in metadata:
             url = f"{self.url}/{row}"
             filename = row
+
+            files.append({ "url": url, "dest_dir": self.dir, "filename": filename })
             
-            url_downloader([{ "url": url, "dest_dir": self.dir, "filename": filename }])
+        url_downloader(files)

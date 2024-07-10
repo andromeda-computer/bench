@@ -66,7 +66,7 @@ class FileSpec(TypedDict):
     filename: str
 
 # make this nicer to support different kinds of downloaders
-def url_downloader(files: List[FileSpec]):
+def url_downloader(files: List[FileSpec], workers: int = 10):
     """Download multiple files to the given directory."""
 
     # if all the files already exist then we can skip downloading
@@ -81,7 +81,7 @@ def url_downloader(files: List[FileSpec]):
         return
 
     with progress:
-        with ThreadPoolExecutor(max_workers=4) as pool:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
             for file in to_download:
                 dest_path = os.path.join(file['dest_dir'], file['filename'])
                 task_id = progress.add_task("download", filename=file['filename'], start=False)

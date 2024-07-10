@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     git \
-    wget \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory in the container
@@ -31,8 +31,6 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Install ComfyUI dependencies
 RUN pip3 install --no-cache-dir -r /app/ComfyUI/requirements.txt
-
-RUN apt-get update && apt-get install -y curl
 
 # Set up the entrypoint
 COPY entrypoint.sh /entrypoint.sh

@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     git \
     curl \
+    tmux \
     && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory in the container
@@ -32,9 +33,16 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 # Install ComfyUI dependencies
 RUN pip3 install --no-cache-dir -r /app/ComfyUI/requirements.txt
 
-# Set up the entrypoint
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Download checkpoint files
+RUN curl -L -o /app/ComfyUI/models/checkpoints/sd_xl_base_1.0.safetensors \
+    https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors
 
-# Set the entrypoint
-ENTRYPOINT ["/entrypoint.sh"]
+RUN curl -L -o /app/ComfyUI/models/checkpoints/sdxl_lightning_4step.safetensors \
+    https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors
+
+# Set up the entrypoint
+# COPY entrypoint.sh /entrypoint.sh
+# RUN chmod +x /entrypoint.sh
+
+# # Set the entrypoint
+# ENTRYPOINT ["/entrypoint.sh"]

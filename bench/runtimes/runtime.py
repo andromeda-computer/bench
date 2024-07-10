@@ -1,8 +1,8 @@
 import abc
 import os
 
+from bench.benchmarks.model import Model
 from bench.config import RUNTIME_STORE_DIR
-from bench.models.model import Model
 
 class Runtime(abc.ABC):
     def __init__(self, cfg):
@@ -13,6 +13,7 @@ class Runtime(abc.ABC):
 
         self._download()
 
+    # TODO remove model from this, instead have explicit load methods for the model to run
     def start(self, model: Model) -> bool:
         if not self.started:
             self.started = self._start(model)
@@ -26,7 +27,7 @@ class Runtime(abc.ABC):
     # TODO this probably should be split up a different way.
     # the handling is very ugly in Runtime.
     @abc.abstractmethod
-    def benchmark(self, model, data):
+    def benchmark(self, model, data, config = None):
         pass
 
     @abc.abstractmethod

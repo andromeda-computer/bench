@@ -12,34 +12,58 @@ from rich.table import Table
 from rich.live import Live
 from rich.panel import Panel
 
+from bench.benchmarks.model import Model
 from bench.config import RUN_STORE_DIR
 from bench.logger import logger
 from bench.datasets.dataset import CreationDataset, FileDataset, PromptDataset
-from bench.models.model import Model
+from bench.runtimes.runtime import Runtime
 from bench.system.system import system
+from .benchmark_test import BenchmarkResult, BenchmarkTest
+
 
 class Benchmark(abc.ABC):
 
-    def __init__(self, name, cfg, runtimes, benchmarker_name, **kwargs):
+    def __init__(self, name, cfg, runtimes: List[Runtime], benchmarker_name, **kwargs):
         # TODO set up proper logging for each benchmark
         print(f"Preparing {name} benchmark...")
 
         self.name = name
         self.benchmarker_name = benchmarker_name
         self.runtimes = runtimes
-
-        self.models = {}
+        self.models = [] 
+        # tests could be a dict from tag: test 
+        self.tests = []
         self.datasets = {}
-        self.results = {}
+
+        variants = set()
 
         logger.info(f"Preparing models for {name}")
-        for model in cfg['models']:
-            name = model['name']
-            if model.get('variants'):
-                for variant in model['variants']:
-                    self.models[f'{name}-{variant}'] = Model(model, variant)
+        for model_cfg in cfg['models']:
+            model = Model(model_cfg)
+            self.models.append(model)
+
+            # TODO allow for multiple runtimes on the same model
+            model_runtime = self.runtimes.get(model_cfg.get("runtime", None), None) 
+
+            if not model_runtime:
+                logger.warning(f"Runtime: {model_cfg.get('runtime')} not supported")
+                continue
+
+            if model_cfg.get('variants'):
+                for variant in model_cfg['variants']:
+                    variants.update(variant.keys())
+                    self.tests.append(BenchmarkTest(model, model_runtime, variant))
             else:
-                self.models[name] = Model(model)
+                self.tests.append(BenchmarkTest(model, model_runtime))
+
+        # get variant keys and add to column
+
+        self.columns = ["status", "model", "quant"] + list(variants) + ["elapsed time", "avg watts"] + self._benchmark_columns()
+        self.rows = {}
+
+        # TODO redo this. it could just use the state from benchmark directly?
+        self.bench_logger = BenchmarkLogger(self.columns, self.name.capitalize())
+
 
         logger.info(f"Preparing datasets for {name}")
         for dataset in cfg['datasets']:
@@ -56,82 +80,73 @@ class Benchmark(abc.ABC):
 
         logger.info(f"Benchmark {self.name} has {len(self.models)} models and {len(self.datasets)} datasets")
 
-    # TODO set up common columns for all benchmarks
+    @abc.abstractmethod
+    def _compute_results(self):
+        pass
+
     @abc.abstractmethod
     def _benchmark_columns(self):
         pass
 
     @abc.abstractmethod
-    def _update_row(self, model: Model, results: List):
+    def _update_display(self, tag, data):
         pass
 
+    def update_row(self, tag: str, data: List[BenchmarkResult]):
+        self.rows[tag] = self._compute_results(data)
+        self._update_display(tag, self.rows[tag])
+
     def benchmark(self):
-        self.bench_logger = BenchmarkLogger(self._benchmark_columns(), self.name.capitalize())
         update_thread = threading.Thread(target=self.bench_logger.start_live_updates)
         update_thread.start()
 
-        for _, model in self.models.items():
-            runtime = self.runtimes.get(model.runtime, None)
+        total_count = sum([len(dataset.data) for _, dataset in self.datasets.items()])
 
-            if not runtime:
-                logger.warning(f"Runtime: {model.runtime} not supported")
-                continue
-
-            # TODO model.benchmark(runtime, ...??)
-            # almost certainly this is the way
-            # the model would know what type it is so it can call the right benchmark method
-            # with type hints
-            # also would support somtehing like resolution much nicer.
-            logger.info(f"Benchmarking {model.name} with {model.runtime} runtime...")
-            # print(f"Benchmarking {model.name} with {model.runtime} runtime and {model.quant} quant...")
-            self.bench_logger.add_row(model.tag, {
+        for test in self.tests:
+            logger.info(f"Benchmarking {test.model.name} with {test.runtime.name} runtime...")
+            self.bench_logger.add_row(test.tag, {
                 "status": f"[blue]starting[/blue]",  
-                "model": model.name,
-                "quant": model.quant,
+                "model": test.model.name,
+                "quant": test.model.quant,
+                **(test.variant or {})
             })
-            started = runtime.start(model)
+            started = test.start_runtime()
 
             if not started:
-                self.bench_logger.update_row(model.tag, {
+                self.bench_logger.update_row(test.tag, {
                     "status": f"[red]failed[/red]",  
                 })
-                logger.info(f"Failed to start runtime: {model.runtime}")
+                logger.info(f"Failed to start runtime: {test.runtime.name}")
                 continue
-
-            results = []
+            
             count = 0
-            total_count = sum([len(dataset.data) for _, dataset in self.datasets.items()])
 
             for _, dataset in self.datasets.items():
-                for data in dataset.data:
+                for test_item in dataset.data:
                     count += 1
-                    self.bench_logger.update_row(model.tag, {
+                    self.bench_logger.update_row(test.tag, {
                         "status": f"[{count}/{total_count}]"
                     })
 
-                    # TODO it might make more sense to calculate tok/sec/watt directly here
-                    start_time = system.power_start("individual_bench_run")
-                    result = runtime.benchmark(model, data)
-                    watts, samples, end_time = system.power_stop("individual_bench_run")
-                    total_time = end_time - start_time
+                    test.run(test_item)
+                    self.update_row(test.tag, test.results)
 
-                    if result:
-                        # TODO a class?
-                        results.append({"data": result, "time": total_time, "watts": watts})
-                        self._update_row(model, results)
-            
-            self.results[model.name] = results
-
-            self.bench_logger.update_row(model.name, {
+            self.bench_logger.update_row(test.tag, {
                 "status": f"[green]success[/green]"
             })
-            runtime.stop()
+
+            test.stop_runtime()
+            time.sleep(1)
+
 
         # sleep to make sure all the rows updated. this should happen on update instead, but shrug
         time.sleep(1)
         # TODO only write to file if asked to
-        self.bench_logger.write_table(self.benchmarker_name)
+        # actually use a config file to determine sqlite, s3 or local file or whatever..
+        # self.bench_logger.write_table(self.benchmarker_name)
         self.bench_logger.stop()
+        # make sure we are actually stopped before continuing
+        time.sleep(2)
 
 def get_benchmark_color(name):
     if name == "language":
@@ -140,6 +155,8 @@ def get_benchmark_color(name):
         return "bright_blue"
     elif name == "hearing":
         return "bright_magenta"
+    elif name == "creation":
+        return "bright_yellow"
     else:
         return "blue"
 

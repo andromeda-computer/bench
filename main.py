@@ -7,7 +7,8 @@ import argparse
 def main():
     parser = argparse.ArgumentParser(description='My Simple CLI')
 
-    parser.add_argument('--fast', action='store_true', default=False, help='Run a fast benchmark. This will use a smaller dataset and fewer iterations.')
+    parser.add_argument('--fast', action='store_true', default=False, help='Run a fast benchmark. This will do a single iteration on each dataset.')
+    parser.add_argument('--full', action='store_true', default=False, help='Run the full benchmark. This will use the entire dataset. May take a long time')
     parser.add_argument('--verbose', action='store_true', default=False, help='Enable verbose output.')
     parser.add_argument('--debug', action='store_true', default=False, help='Enable debugging output.')
     parser.add_argument('--info', action='store_true', default=False, help='Display system information without running the benchmark')

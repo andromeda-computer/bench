@@ -1,18 +1,16 @@
-
-import os
-
 from bench import logger
 from bench.config import MODEL_STORE_DIR
+import os
+
 from bench.utils import url_downloader
 
 class Model():
 
-    def __init__(self, cfg, variant = None):
-        self.variant = variant
+    def __init__(self, cfg):
         self.name = cfg['name']
-        self.tag = self.name
-        self.type = cfg['type']
+        # self.tag = self.name
         self.runtime = cfg['runtime']
+        self.type = cfg['type']
         self.quant = cfg.get('quant', 'unknown')
         self.url = cfg['url']
         self.projector_url = cfg.get('projector_url', None)
@@ -31,26 +29,28 @@ class Model():
         self.scheduler = cfg.get('scheduler', None)
         self.cfg_scale = cfg.get('cfg_scale', None)
 
-        if variant:
-            self.resolution = variant.get('resolution', None)
-            self.tag = f"{self.name}-{self.resolution}"
+        # TODO this is part of BenchmarkTest now.
+        # if variant:
+        #     self.resolution = variant.get('resolution', None)
+        #     self.tag = f"{self.name}-{self.resolution}"
 
         self._download()
 
     def _download(self):
-        if self.runtime == "llamafile" or self.runtime == "whisperfile":
+        runtime_name = self.runtime
+        if runtime_name == "llamafile" or runtime_name == "whisperfile":
             to_download = [{"url": self.url, "dest_dir": self.dir, "filename": self.filename}]
 
             if self.projector_url:
                 to_download.append({"url": self.projector_url, "dest_dir": self.dir, "filename": self.projector_filename})
 
             url_downloader(to_download)
-        elif self.runtime == "docker":
+        elif runtime_name == "docker":
             self._download_docker()
-        elif self.runtime == "comfy":
+        elif runtime_name == "comfy":
             self._download_comfy()
         else:
-            logger.warning(f"Runtime: {self.runtime} not supported")
+            logger.warning(f"Runtime: {runtime_name} not supported")
 
     def _download_from_url(self):
         url_downloader([{ "url": self.url, "dest_dir": self.dir, "filename": self.filename }])

@@ -4,7 +4,7 @@ import time
 import uuid
 from bench import logger
 from bench.benchmarks.creation import CreationBenchmarkResult
-from bench.models.model import Model
+from bench.benchmarks.benchmark_test import BenchmarkTest
 from bench.runtimes.runtime import Runtime
 import websocket
 import urllib.request
@@ -112,47 +112,53 @@ class ComfyRuntime(Runtime):
     def _download(self):
         pass
 
-    def _start(self, model: Model):
+    def _start(self, model: BenchmarkTest):
         return True
 
     def _stop(self):
         return True
 
-    def benchmark(self, model: Model, data):
+    def benchmark(self, model: BenchmarkTest, data, config):
         if (model.type == "creation"):
-            return self._benchmark_creation(model, data)
+            return self._benchmark_creation(model, data, config)
         else:
             logger.warning(f"Model type: {model.type} not supported for comfy runtime")
             return None
     
-    def _benchmark_creation(self, model: Model, data):
+    def _benchmark_creation(self, model: BenchmarkTest, data, config):
         req = BASE_REQ.copy()
 
         req['4']['inputs']['ckpt_name'] = model.filename
         req['3']['inputs']['steps'] = model.steps
         req['3']['inputs']['scheduler'] = model.scheduler
         req['3']['inputs']['cfg'] = model.cfg_scale
-        req['5']['inputs']['width'] = model.resolution
-        req['5']['inputs']['height'] = model.resolution
+        req['5']['inputs']['width'] = config['resolution']
+        req['5']['inputs']['height'] = config['resolution']
         req['6']['inputs']['text'] = data['prompt']
         req['7']['inputs']['text'] = data['negative']
 
         prompt_id = self._queue_prompt(req)['prompt_id']
         start = time.time()
         k_sampler_started = None
+        model_load_started = None
+        model_load_time = 0 
         k_sampler_sec_elapsed = []
         while True:
             out = self.ws.recv()
             if isinstance(out, str):
                 message = json.loads(out)
-                # print(message)
                 if message['type'] == 'executing':
                     data = message['data']
                     if data['node'] is None and data['prompt_id'] == prompt_id:
                         break #Execution is done
-                    if data['node'] == '3':
-                        k_sampler_started = time.time()
+                    if data['node'] == '4':
+                        model_load_started = time.time()
+                    if data['node'] == '5' and model_load_started:
+                        model_load_time = time.time() - model_load_started
                 if message['type'] == 'progress' and message['data']['node'] == "3":
+                    if not k_sampler_started:
+                        k_sampler_started = time.time()
+                        continue
                     data = message['data']
                     now = time.time()
                     k_sampler_sec_elapsed.append(now - k_sampler_started)
@@ -161,7 +167,7 @@ class ComfyRuntime(Runtime):
                 continue #previews are binary data
 
         total_time = time.time() - start
-        return CreationBenchmarkResult(total_time, k_sampler_sec_elapsed)
+        return CreationBenchmarkResult(total_time, k_sampler_sec_elapsed, model_load_time)
 
     def _queue_prompt(self,prompt):
         p = {"prompt": prompt, "client_id": self.client_id}

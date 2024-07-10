@@ -1,30 +1,16 @@
 #!/bin/bash
 
-CHECKPOINTS_DIR="/app/ComfyUI/models/checkpoints"
+# Start a new tmux session named "bench"
+tmux new-session -d -s bench
 
-# Function to download file if it doesn't exist
-download_if_not_exists() {
-    local url=$1
-    local filename=$2
-    if [ ! -f "$CHECKPOINTS_DIR/$filename" ]; then
-        echo "Downloading $filename..."
-        curl -L -o "$CHECKPOINTS_DIR/$filename" "$url" \
-             --progress-bar \
-             --retry 3 \
-             --retry-delay 5 \
-             --retry-max-time 60
-        echo "Download complete: $filename"
-    else
-        echo "$filename already exists, skipping download."
-    fi
-}
+# Split the window vertically
+tmux split-window -h
 
-# Download checkpoint files
-download_if_not_exists "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors" "sd_xl_base_1.0.safetensors"
-download_if_not_exists "https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors" "sdxl_lightning_4step.safetensors"
+# In the right pane, change to the ComfyUI directory and run main.py
+tmux send-keys -t bench:0.1 'cd /app/ComfyUI && python3 main.py' C-m
 
-# Start ComfyUI in the background
-python3 /app/ComfyUI/main.py &
+# Select the left pane
+tmux select-pane -t bench:0.0
 
-# Start an interactive shell
-/bin/bash
+# Attach to the tmux session
+tmux attach-session -t bench

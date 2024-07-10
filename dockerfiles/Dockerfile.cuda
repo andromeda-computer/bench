@@ -41,8 +41,8 @@ RUN curl -L -o /app/ComfyUI/models/checkpoints/sdxl_lightning_4step.safetensors 
     https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors
 
 # Set up the entrypoint
-# COPY entrypoint.sh /entrypoint.sh
-# RUN chmod +x /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# # Set the entrypoint
-# ENTRYPOINT ["/entrypoint.sh"]
+# Set the entrypoint
+ENTRYPOINT ["/entrypoint.sh"]

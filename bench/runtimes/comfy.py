@@ -140,19 +140,25 @@ class ComfyRuntime(Runtime):
         prompt_id = self._queue_prompt(req)['prompt_id']
         start = time.time()
         k_sampler_started = None
+        model_load_started = None
+        model_load_time = 0 
         k_sampler_sec_elapsed = []
         while True:
             out = self.ws.recv()
             if isinstance(out, str):
                 message = json.loads(out)
-                # print(message)
                 if message['type'] == 'executing':
                     data = message['data']
                     if data['node'] is None and data['prompt_id'] == prompt_id:
                         break #Execution is done
-                    if data['node'] == '3':
-                        k_sampler_started = time.time()
+                    if data['node'] == '4':
+                        model_load_started = time.time()
+                    if data['node'] == '5' and model_load_started:
+                        model_load_time = time.time() - model_load_started
                 if message['type'] == 'progress' and message['data']['node'] == "3":
+                    if not k_sampler_started:
+                        k_sampler_started = time.time()
+                        continue
                     data = message['data']
                     now = time.time()
                     k_sampler_sec_elapsed.append(now - k_sampler_started)
@@ -161,7 +167,7 @@ class ComfyRuntime(Runtime):
                 continue #previews are binary data
 
         total_time = time.time() - start
-        return CreationBenchmarkResult(total_time, k_sampler_sec_elapsed)
+        return CreationBenchmarkResult(total_time, k_sampler_sec_elapsed, model_load_time)
 
     def _queue_prompt(self,prompt):
         p = {"prompt": prompt, "client_id": self.client_id}

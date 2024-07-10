@@ -41,30 +41,3 @@ class BenchmarkTest():
 
     def get_results(self):
         return self.results
-
-    def get_avg_results(self):
-        raw_results = [result['data'] for result in self.results]
-
-        if not raw_results:
-            return {}
-
-        total_values = {}
-        count_values = {}
-
-        for result in raw_results:
-            for attr_name, attr_value in vars(result).items():
-                if isinstance(attr_value, Number):
-                    if attr_name not in total_values:
-                        total_values[attr_name] = 0
-                        count_values[attr_name] = 0
-                    total_values[attr_name] += attr_value
-                    count_values[attr_name] += 1
-
-        averaged_values = {
-            attr_name: total_values[attr_name] / count_values[attr_name]
-            for attr_name in total_values
-        }
-        
-        print(averaged_values)
-
-        return averaged_values

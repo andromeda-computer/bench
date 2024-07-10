@@ -18,7 +18,7 @@ from bench.logger import logger
 from bench.datasets.dataset import CreationDataset, FileDataset, PromptDataset
 from bench.runtimes.runtime import Runtime
 from bench.system.system import system
-from .benchmark_test import BenchmarkTest
+from .benchmark_test import BenchmarkResult, BenchmarkTest
 
 
 class Benchmark(abc.ABC):
@@ -30,13 +30,12 @@ class Benchmark(abc.ABC):
         self.name = name
         self.benchmarker_name = benchmarker_name
         self.runtimes = runtimes
-        self.bench_logger = BenchmarkLogger(self.benchmark_columns(), self.name.capitalize())
-
-        # TODO this can just be a list
         self.models = [] 
+        # tests could be a dict from tag: test 
         self.tests = []
         self.datasets = {}
-        self.results = {}
+
+        variants = set()
 
         logger.info(f"Preparing models for {name}")
         for model_cfg in cfg['models']:
@@ -52,9 +51,19 @@ class Benchmark(abc.ABC):
 
             if model_cfg.get('variants'):
                 for variant in model_cfg['variants']:
+                    variants.update(variant.keys())
                     self.tests.append(BenchmarkTest(model, model_runtime, variant))
             else:
                 self.tests.append(BenchmarkTest(model, model_runtime))
+
+        # get variant keys and add to column
+
+        self.columns = ["status", "model", "quant"] + list(variants) + ["elapsed time", "avg watts"] + self._benchmark_columns()
+        self.rows = {}
+
+        # TODO redo this. it could just use the state from benchmark directly?
+        self.bench_logger = BenchmarkLogger(self.columns, self.name.capitalize())
+
 
         logger.info(f"Preparing datasets for {name}")
         for dataset in cfg['datasets']:
@@ -71,39 +80,42 @@ class Benchmark(abc.ABC):
 
         logger.info(f"Benchmark {self.name} has {len(self.models)} models and {len(self.datasets)} datasets")
 
-    def benchmark_columns(self):
-        common_columns = ["status", "model", "quant", "elapsed time", "avg watts"]
-        return common_columns + self._benchmark_columns()
+    @abc.abstractmethod
+    def _compute_results(self):
+        pass
 
-    # TODO set up common columns for all benchmarks
     @abc.abstractmethod
     def _benchmark_columns(self):
         pass
 
     @abc.abstractmethod
-    def _update_row(self, model: BenchmarkTest, results: List):
+    def _update_display(self, tag, data):
         pass
+
+    def update_row(self, tag: str, data: List[BenchmarkResult]):
+        self.rows[tag] = self._compute_results(data)
+        self._update_display(tag, self.rows[tag])
 
     def benchmark(self):
         update_thread = threading.Thread(target=self.bench_logger.start_live_updates)
         update_thread.start()
 
         total_count = sum([len(dataset.data) for _, dataset in self.datasets.items()])
-        test_results = []
 
         for test in self.tests:
             logger.info(f"Benchmarking {test.model.name} with {test.runtime.name} runtime...")
-            # self.bench_logger.add_row(test.tag, {
-            #     "status": f"[blue]starting[/blue]",  
-            #     "model": test.model.name,
-            #     "quant": test.model.quant,
-            # })
+            self.bench_logger.add_row(test.tag, {
+                "status": f"[blue]starting[/blue]",  
+                "model": test.model.name,
+                "quant": test.model.quant,
+                **(test.variant or {})
+            })
             started = test.start_runtime()
 
             if not started:
-                # self.bench_logger.update_row(test.tag, {
-                #     "status": f"[red]failed[/red]",  
-                # })
+                self.bench_logger.update_row(test.tag, {
+                    "status": f"[red]failed[/red]",  
+                })
                 logger.info(f"Failed to start runtime: {test.runtime.name}")
                 continue
             
@@ -112,24 +124,18 @@ class Benchmark(abc.ABC):
             for _, dataset in self.datasets.items():
                 for test_item in dataset.data:
                     count += 1
-                    # self.bench_logger.update_row(test.tag, {
-                    #     "status": f"[{count}/{total_count}]"
-                    # })
+                    self.bench_logger.update_row(test.tag, {
+                        "status": f"[{count}/{total_count}]"
+                    })
 
-                    result = test.run(test_item)
-                    # self._update_row(test.tag, test.get_results())
+                    test.run(test_item)
+                    self.update_row(test.tag, test.results)
 
-                    # if result:
-                    #     self._update_row(test, test.get_results())
+            self.bench_logger.update_row(test.tag, {
+                "status": f"[green]success[/green]"
+            })
 
-            # self.bench_logger.update_row(test.tag, {
-            #     "status": f"[green]success[/green]"
-            # })
-
-            # test_results.append(test.get_avg_results())
-            
             test.stop_runtime()
-
             time.sleep(1)
 
 

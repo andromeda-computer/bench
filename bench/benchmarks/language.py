@@ -30,23 +30,38 @@ class LanguageBenchmark(Benchmark):
             "generate tps/watt",
         ]
 
-    def compute_results(self):
-        pass
+    def _compute_results(self, results):
+        elapsed_time = sum(result.time for result in results)
+        avg_watts = sum(result.watts for result in results) / len(results)
+        num_prompt_tokens = sum(result.n_prompt_tokens for result in results)
+        num_generated_tokens = sum(result.n_generated_tokens for result in results)
+        prompt_tps = sum(result.prompt_tps for result in results) / len(results)
+        generated_tps = sum(result.generated_tps for result in results) / len(results)
+        avg_ttft = sum(result.ttft for result in results) / len(results)
+        prompt_tps_watt = prompt_tps / avg_watts
+        generate_tps_watt = generated_tps / avg_watts
 
-    def _update_row(self, tag, results):
-        avg_watts = sum(result['watts'] for result in results) / len(results)
-        prompt_tps = sum(result['data'].prompt_tps for result in results) / len(results)
-        generated_tps = sum(result['data'].generated_tps for result in results) / len(results)
-        avg_ttft = sum(result['data'].ttft for result in results) / len(results)
+        return {
+            "elapsed_time": elapsed_time,
+            "avg_watts": avg_watts,
+            "num_prompt_tokens": num_prompt_tokens,
+            "num_generated_tokens": num_generated_tokens,
+            "prompt_tps": prompt_tps,
+            "generated_tps": generated_tps,
+            "avg_ttft": avg_ttft,
+            "prompt_tps_watt": prompt_tps_watt,
+            "generate_tps_watt": generate_tps_watt,
+        }
 
+    def _update_display(self, tag, data):
         self.bench_logger.update_row(tag, {
-            "elapsed time": f"{round(sum(result['time'] for result in results), 2)}s",
-            "avg watts": f"{round(avg_watts, 2)} W",
-            "# prompt tokens": sum(result['data'].n_prompt_tokens for result in results),
-            "# generated tokens": sum(result['data'].n_generated_tokens for result in results),
-            "prompt tps": f"[cyan]{round(prompt_tps, 2)}[/cyan]",
-            "generate tps": f"[magenta]{round(generated_tps, 2)}[/magenta]",
-            "avg ttft": f"[green]{round(avg_ttft)}ms[/green]",
-            "prompt tps/watt": f"{round(prompt_tps / avg_watts, 2)}",
-            "generate tps/watt": f"{round(generated_tps / avg_watts, 2)}",
+            "elapsed time": f"{round(data['elapsed_time'], 2)}s",
+            "avg watts": f"{round(data['avg_watts'], 2)} W",
+            "# prompt tokens": data['num_prompt_tokens'],
+            "# generated tokens": data['num_generated_tokens'],
+            "prompt tps": f"[cyan]{round(data['prompt_tps'], 2)}[/cyan]",
+            "generate tps": f"[magenta]{round(data['generated_tps'], 2)}[/magenta]",
+            "avg ttft": f"[green]{round(data['avg_ttft'])}ms[/green]",
+            "prompt tps/watt": f"{round(data['prompt_tps_watt'], 2)}",
+            "generate tps/watt": f"{round(data['generate_tps_watt'], 2)}",
         })

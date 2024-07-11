@@ -1,4 +1,5 @@
 from bench.benchmarker import Benchmarker
+from bench.config import update_store_dirs
 from bench.system.system import system
 from bench.logger import logger
 
@@ -6,7 +7,7 @@ import argparse
 import asyncio
 
 async def main():
-    parser = argparse.ArgumentParser(description='My Simple CLI')
+    parser = argparse.ArgumentParser(description='Andromeda Benchmark')
 
     parser.add_argument('--fast', action='store_true', default=False, help='Run a fast benchmark. This will do a single iteration on each dataset.')
     parser.add_argument('--full', action='store_true', default=False, help='Run the full benchmark. This will use the entire dataset. May take a long time')
@@ -15,11 +16,13 @@ async def main():
     parser.add_argument('--info', action='store_true', default=False, help='Display system information without running the benchmark')
     parser.add_argument('--download', action='store_true', default=False, help='Download the models and datasets without running the benchmark')
     parser.add_argument('--benchmark', type=str, default='all', help='Specify the benchmark to run. Comma separated list of language, hearing, vision, creation. Default is all.')
+    parser.add_argument('--store', type=str, default='.store', help='Specify the base directory for storing models, datasets, runtimes, etc.')
     # parser.add_argument('--recompile', action='store_true', default=False, help='Recompile the runtime cod')
     # parser.add_argument('--cpu', type=int, help='Specify the number of CPU cores to use')
     # parser.add_argument('--download_path', type=str, help='Specify the download path')
 
     args = parser.parse_args()
+    update_store_dirs(args.store)
 
     if args.verbose:
         logger.setLevel('INFO')

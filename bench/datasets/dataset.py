@@ -5,9 +5,8 @@ import os
 import requests
 
 from bench import logger
-from bench.config import DATASET_STORE_DIR
+from bench import config
 from bench.utils import url_downloader
-
 
 class Dataset(abc.ABC):
 
@@ -19,7 +18,7 @@ class Dataset(abc.ABC):
         self.url = dataset['url']
         self.source = dataset['source']
 
-        self.dir = os.path.join(DATASET_STORE_DIR, suite, self.name)
+        self.dir = os.path.join(config.DATASET_STORE_DIR, suite, self.name)
 
         self._download()
 

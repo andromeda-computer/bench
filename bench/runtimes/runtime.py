@@ -2,13 +2,13 @@ import abc
 import os
 
 from bench.benchmarks.model import Model
-from bench.config import RUNTIME_STORE_DIR
+from bench import config
 
 class Runtime(abc.ABC):
     def __init__(self, cfg):
         self.name = cfg['name']
         self.cfg = cfg
-        self.dir = os.path.join(RUNTIME_STORE_DIR, self.name)
+        self.dir = os.path.join(config.RUNTIME_STORE_DIR, self.name)
         self.started = False
 
         self._download()

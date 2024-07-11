@@ -1,9 +1,8 @@
 from bench import logger
-from bench.config import MODEL_STORE_DIR
+from bench import config
 import os
 
 from bench.downloader import get_downloader
-from bench.utils import url_downloader
 
 class Model():
 
@@ -19,7 +18,7 @@ class Model():
         self.projector_filename = f"{self.name}.mmproj" if self.projector_url else None
         self.prompt_template = cfg.get('prompt_template')
         self.stop = cfg.get('stop')
-        self.dir = os.path.join(MODEL_STORE_DIR, self.type)
+        self.dir = os.path.join(config.MODEL_STORE_DIR, self.type)
         self.path = os.path.join(self.dir, self.filename)
         self.projector_path = os.path.join(self.dir, self.projector_filename) if self.projector_url else None
 

@@ -1,7 +1,17 @@
+import os
+
 CONFIG_FILE = "config.yaml"
-DATASET_STORE_DIR = ".datasets"
-RUNTIME_STORE_DIR = ".runtimes"
-MODEL_STORE_DIR = ".models"
+BASE_STORE_DIR = ".store"
+DATASET_STORE_DIR = os.path.join(BASE_STORE_DIR, "datasets")
+RUNTIME_STORE_DIR = os.path.join(BASE_STORE_DIR, "runtimes")
+MODEL_STORE_DIR = os.path.join(BASE_STORE_DIR, "models")
+RUN_STORE_DIR = "runs"
 PORT = 8314
 HOST = "localhost"
-RUN_STORE_DIR = "runs"
+
+def update_store_dirs(base_dir):
+    global BASE_STORE_DIR, DATASET_STORE_DIR, RUNTIME_STORE_DIR, MODEL_STORE_DIR, RUN_STORE_DIR
+    BASE_STORE_DIR = base_dir
+    DATASET_STORE_DIR = os.path.join(BASE_STORE_DIR, "datasets")
+    RUNTIME_STORE_DIR = os.path.join(BASE_STORE_DIR, "runtimes")
+    MODEL_STORE_DIR = os.path.join(BASE_STORE_DIR, "models")

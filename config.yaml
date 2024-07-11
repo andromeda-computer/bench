@@ -171,7 +171,7 @@ runtimes:
     url: https://github.com/Mozilla-Ocho/llamafile/releases/download/0.8.8/llamafile-0.8.8
     version: 0.8.8
   - name: whisperfile
-    url: "https://github.com/cjpais/whisperfile/releases/download/0.1.1/whisperfile-0.1.1"
-    version: 0.1.1
+    url: https://github.com/cjpais/whisperfile/releases/download/0.1.2/whisperfile-0.1.2
+    version: 0.1.2
   - name: docker
   - name: comfy

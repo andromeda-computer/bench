@@ -91,6 +91,7 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
                 f"--port {PORT}",
                 f"--host {HOST}",
                 f"--convert",
+                "--recompile" if recompile else "",
                 ">&2"
             ])
         else:

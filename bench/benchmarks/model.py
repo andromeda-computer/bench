@@ -2,6 +2,7 @@ from bench import logger
 from bench.config import MODEL_STORE_DIR
 import os
 
+from bench.downloader import get_downloader
 from bench.utils import url_downloader
 
 class Model():
@@ -39,12 +40,16 @@ class Model():
     def _download(self):
         runtime_name = self.runtime
         if runtime_name == "llamafile" or runtime_name == "whisperfile":
-            to_download = [{"url": self.url, "dest_dir": self.dir, "filename": self.filename}]
+            downloader = get_downloader()
+
+            downloader.add_download({"url": self.url, "dest_dir": self.dir, "filename": self.filename})
+            # to_download = [{"url": self.url, "dest_dir": self.dir, "filename": self.filename}]
 
             if self.projector_url:
-                to_download.append({"url": self.projector_url, "dest_dir": self.dir, "filename": self.projector_filename})
+                downloader.add_download({"url": self.projector_url, "dest_dir": self.dir, "filename": self.projector_filename})
+                # to_download.append({"url": self.projector_url, "dest_dir": self.dir, "filename": self.projector_filename})
 
-            url_downloader(to_download)
+            # url_downloader(to_download)
         elif runtime_name == "docker":
             self._download_docker()
         elif runtime_name == "comfy":
@@ -53,7 +58,8 @@ class Model():
             logger.warning(f"Runtime: {runtime_name} not supported")
 
     def _download_from_url(self):
-        url_downloader([{ "url": self.url, "dest_dir": self.dir, "filename": self.filename }])
+        get_downloader().add_download({"url": self.url, "dest_dir": self.dir, "filename": self.filename})
+        # url_downloader([{ "url": self.url, "dest_dir": self.dir, "filename": self.filename }])
 
     def _download_docker(self):
         pass

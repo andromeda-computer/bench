@@ -7,6 +7,7 @@ from bench.benchmarks.hearing import HearingBenchmark
 from bench.benchmarks.language import LanguageBenchmark
 from bench.benchmarks.vision import VisionBenchmark
 from bench.config import CONFIG_FILE
+from bench.downloader import get_downloader
 from bench.runtimes.comfy import ComfyRuntime
 from bench.runtimes.docker import DockerRuntime
 from bench.runtimes.ggml import LlamafileRuntime, WhisperfileRuntime
@@ -38,6 +39,10 @@ class Benchmarker():
         self.cfg = yaml.safe_load(cfg_file)
         self.runtimes = self._init_runtimes(self.cfg['runtimes'])
         self.benchmarks = self._init_benchmarks(self.cfg['benchmarks'], **kwargs)
+        self.downloader = get_downloader()
+
+    async def download(self):
+        await self.downloader.wait_for_downloads()
 
     def _init_benchmarks(self, cfg, **kwargs):
         benchmarks = {}

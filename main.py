@@ -3,8 +3,9 @@ from bench.system.system import system
 from bench.logger import logger
 
 import argparse
+import asyncio
 
-def main():
+async def main():
     parser = argparse.ArgumentParser(description='My Simple CLI')
 
     parser.add_argument('--fast', action='store_true', default=False, help='Run a fast benchmark. This will do a single iteration on each dataset.')
@@ -30,9 +31,10 @@ def main():
         return
 
     benchmarker = Benchmarker(**vars(args))
+    await benchmarker.download()
 
     if not args.download:
         benchmarker.benchmark(args.benchmark)
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

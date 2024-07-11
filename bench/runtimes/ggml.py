@@ -2,6 +2,7 @@ import abc
 import base64
 import json
 import os
+import signal
 import subprocess
 import threading
 import time
@@ -131,7 +132,7 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
             # Handle the situation depending on the collected stderr and stdout
             for line in stderr_lines:
                 if "CUDA error: no kernel image is available for execution on the device" in line:
-                    kill(self.pid)
+                    self._stop_server()
                     self._start_server(model, ngl, recompile=True, attempt=attempt + 1)
                 elif "cudaMalloc failed: out of memory" in line:
                     kill(self.pid)
@@ -142,12 +143,18 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
 
         except Exception as e:
             logger.error(e)
-            kill(self.pid)
+            self._stop_server()
 
     def _stop_server(self):
         if hasattr(self, 'pid') and self.pid:
-            kill(self.pid)
+            try:
+                os.killpg(os.getpgid(self.pid), signal.SIGTERM)
+            except ProcessLookupError:
+                pass  # Process already terminated
             self.pid = None
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._stop_server()
 
     def __del__(self):
         self._stop_server()

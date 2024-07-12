@@ -1,46 +1,51 @@
 from typing import List
-
 from bench.benchmarks.benchmark import Benchmark
-from bench.benchmarks.benchmark_test import BenchmarkTest
+from bench.utils import create_percentile_columns, Column
 
-class HearingBenchmarkResult():
-
-    # TODO json really should be an adapter in the runtime instead.
+class HearingBenchmarkResult:
     def __init__(self, json):
         self.text = json['text']
-        self.input_seconds = (json['duration'])
-        self.transcribe_time = (json['transcribe_time'] / 1000)
-        self.speedup = (self.input_seconds / self.transcribe_time)
+        self.input_seconds = json['duration']
+        self.transcribe_time = json['transcribe_time'] / 1000
+        self.speedup = self.input_seconds / self.transcribe_time
 
 class HearingBenchmark(Benchmark):
 
     def _benchmark_columns(self):
         return [
-            "total input seconds",
-            "total transcribe time",
-            "avg speedup",
-            "avg speedup/watt",
+            Column("elapsed time", True, 
+                   lambda results: sum(r.time for r in results),
+                   lambda x: f"{round(x, 2)}s"),
+            Column("avg watts", True, 
+                   lambda results: sum(r.watts for r in results) / len(results),
+                   lambda x: f"{round(x, 2)} W"),
+            Column("total input seconds", True, 
+                   lambda results: sum(r.input_seconds for r in results),
+                   lambda x: f"{round(x, 2)}"),
+            Column("total transcribe time", True, 
+                   lambda results: sum(r.transcribe_time for r in results),
+                   lambda x: f"{round(x, 2)}"),
+            Column("avg speedup", True, 
+                   lambda results: sum(r.speedup for r in results) / len(results),
+                   lambda x: f"[magenta]{round(x, 2)}x[/magenta]"),
+            Column("avg speedup/watt", True, 
+                   lambda results: (sum(r.speedup for r in results) / len(results)) / 
+                                   (sum(r.watts for r in results) / len(results)),
+                   lambda x: f"{round(x, 2)}"),
         ]
 
-    def _compute_results(self, results: List):
-        avg_watts = sum(result.watts for result in results) / len(results)
-        avg_speedup = sum(result.speedup for result in results) / len(results)
-        
-        return {
-            "elapsed_time": sum(result.time for result in results),
-            "avg_watts": avg_watts,
-            "total_input_seconds": sum(result.input_seconds for result in results),
-            "total_transcribe_time": sum(result.transcribe_time for result in results),
-            "avg_speedup": avg_speedup,
-            "avg_speedup_per_watt": avg_speedup / avg_watts,
-        }
+    def get_columns(self):
+        return [col.name for col in self._benchmark_columns()]
+
+    def _compute_results(self, results: List[HearingBenchmarkResult]):
+        return {col.name: col.compute(results) for col in self._benchmark_columns()}
 
     def _update_display(self, tag: str, data: dict):
         self.bench_logger.update_row(tag, {
-            "elapsed time": f"{round(data['elapsed_time'], 2)}s",
-            "avg watts": f"{round(data['avg_watts'], 2)} W",
-            "total input seconds": round(data['total_input_seconds'], 2),
-            "total transcribe time": round(data['total_transcribe_time'], 2),
-            "avg speedup": f"[magenta]{round(data['avg_speedup'], 2)}x[/magenta]",
-            "avg speedup/watt": round(data['avg_speedup_per_watt'], 2),
+            col.name: col.format(data[col.name])
+            for col in self._benchmark_columns()
+            if col.display
         })
+
+    def get_display_columns(self):
+        return [col.name for col in self._benchmark_columns() if col.display]

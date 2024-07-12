@@ -19,13 +19,31 @@ class BenchmarkTest():
         self.variant = variant
         self.runtime = model_runtime
         self.tag = f"{model.name}-{self.runtime.name}-{self.variant.get('resolution', None) if self.variant else None}"
-
+        self.status = "idle"
         self.results = []
-
-    def start_runtime(self):
-        return self.runtime.start(self.model)
     
-    def stop_runtime(self):
+    def test_info(self):
+        return {
+            "status": self.status,
+            "model": self.model.name,
+            "quant": self.model.quant,
+            "runtime": self.runtime.display_name,
+            **(self.variant or {})
+        }
+
+    def start(self):
+        self.status = "starting"
+        started = self.runtime.start(self.model)
+
+        if not started:
+            self.status = "failed"
+        else:
+            self.status = "running"
+
+        return started
+    
+    def stop(self):
+        self.status = "success"
         return self.runtime.stop()
     
     def run(self, data):

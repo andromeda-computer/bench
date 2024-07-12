@@ -1,4 +1,5 @@
 import abc
+from dataclasses import dataclass
 import os
 import re
 import threading
@@ -20,7 +21,6 @@ from bench.runtimes.runtime import Runtime
 from bench.system.system import system
 from .benchmark_test import BenchmarkResult, BenchmarkTest
 
-
 class Benchmark(abc.ABC):
 
     def __init__(self, name, cfg, runtimes: List[Runtime], benchmarker_name, **kwargs):
@@ -35,30 +35,13 @@ class Benchmark(abc.ABC):
         self.tests = []
         self.datasets = {}
 
-        variants = set()
+        self.variants = set()
 
         logger.info(f"Preparing models for {name}")
-        for model_cfg in cfg['models']:
-            model = Model(model_cfg)
-            self.models.append(model)
-
-            # TODO allow for multiple runtimes on the same model
-            model_runtime = self.runtimes.get(model_cfg.get("runtime", None), None) 
-
-            if not model_runtime:
-                logger.warning(f"Runtime: {model_cfg.get('runtime')} not supported")
-                continue
-
-            if model_cfg.get('variants'):
-                for variant in model_cfg['variants']:
-                    variants.update(variant.keys())
-                    self.tests.append(BenchmarkTest(model, model_runtime, variant))
-            else:
-                self.tests.append(BenchmarkTest(model, model_runtime))
-
-        # get variant keys and add to column
-
-        self.columns = ["status", "model", "quant"] + list(variants) + ["elapsed time", "avg watts"] + self._benchmark_columns()
+        self._setup_tests(cfg)
+        # TODO this is jank af
+        self.columns = ["status", "model", "quant"] + list(self.variants) + self.get_display_columns()
+        self.data_columns = ["status", "model", "quant", "runtime"] + list(self.variants) + self.get_columns()
         self.rows = {}
 
         # TODO redo this. it could just use the state from benchmark directly?
@@ -80,6 +63,26 @@ class Benchmark(abc.ABC):
 
         logger.info(f"Benchmark {self.name} has {len(self.models)} models and {len(self.datasets)} datasets")
 
+    def _setup_tests(self, cfg):
+        for model_cfg in cfg['models']:
+            model = Model(model_cfg)
+            self.models.append(model)
+
+            # TODO allow for multiple runtimes on the same model
+            model_runtime = self.runtimes.get(model_cfg.get("runtime", None), None) 
+
+            if not model_runtime:
+                logger.warning(f"Runtime: {model_cfg.get('runtime')} not supported")
+                continue
+
+            if model_cfg.get('variants'):
+                for variant in model_cfg['variants']:
+                    self.variants.update(variant.keys())
+                    self.tests.append(BenchmarkTest(model, model_runtime, variant))
+            else:
+                self.tests.append(BenchmarkTest(model, model_runtime))
+
+
     @abc.abstractmethod
     def _compute_results(self):
         pass
@@ -92,8 +95,10 @@ class Benchmark(abc.ABC):
     def _update_display(self, tag, data):
         pass
 
-    def update_row(self, tag: str, data: List[BenchmarkResult]):
-        self.rows[tag] = self._compute_results(data)
+    def update_row(self, tag: str, data: List[BenchmarkResult], test_info: dict):
+        computed_results = self._compute_results(data)
+
+        self.rows[tag] = {**test_info, **computed_results}
         self._update_display(tag, self.rows[tag])
 
     def benchmark(self):
@@ -110,12 +115,13 @@ class Benchmark(abc.ABC):
                 "quant": test.model.quant,
                 **(test.variant or {})
             })
-            started = test.start_runtime()
+            started = test.start()
 
             if not started:
                 self.bench_logger.update_row(test.tag, {
                     "status": f"[red]failed[/red]",  
                 })
+                self.update_row(test.tag, test.results, test.test_info())
                 logger.info(f"Failed to start runtime: {test.runtime.name}")
                 continue
             
@@ -129,24 +135,30 @@ class Benchmark(abc.ABC):
                     })
 
                     test.run(test_item)
-                    self.update_row(test.tag, test.results)
+                    self.update_row(test.tag, test.results, test.test_info())
 
             self.bench_logger.update_row(test.tag, {
                 "status": f"[green]success[/green]"
             })
 
-            test.stop_runtime()
+            test.stop()
+            self.update_row(test.tag, test.results, test.test_info())
             time.sleep(1)
 
 
-        # sleep to make sure all the rows updated. this should happen on update instead, but shrug
         time.sleep(1)
-        # TODO only write to file if asked to
-        # actually use a config file to determine sqlite, s3 or local file or whatever..
-        # self.bench_logger.write_table(self.benchmarker_name)
         self.bench_logger.stop()
-        # make sure we are actually stopped before continuing
         time.sleep(2)
+
+    def log_results(self, run_dir):
+        run_path = os.path.join(run_dir, f"{self.name.lower()}.csv")
+
+        with open(run_path, 'w') as f:
+            writer = csv.DictWriter(f, fieldnames=self.data_columns)
+            writer.writeheader()
+
+            for row in self.rows.values():
+                writer.writerow(row)
 
 def get_benchmark_color(name):
     if name == "language":
@@ -159,13 +171,6 @@ def get_benchmark_color(name):
         return "bright_yellow"
     else:
         return "blue"
-
-def remove_tags(input_string):
-    # Pattern to match any text within square brackets and the square brackets themselves
-    pattern = r'\[.*?\]'
-    # Substitute the matched pattern with an empty string
-    cleaned_string = re.sub(pattern, '', f"{input_string}")
-    return cleaned_string
 
 class BenchmarkLogger():
     def __init__(self, columns, title: str):
@@ -211,19 +216,6 @@ class BenchmarkLogger():
         while self.update_flag.is_set():
             self._refresh_table(self.live)
             time.sleep(0.1)
-
-    def write_table(self, benchmarker_name):
-        run_dir = os.path.join(RUN_STORE_DIR, f"{system.get_accelerator_info_string()}:{benchmarker_name}")
-        run_path = os.path.join(run_dir, f"{self.title.lower()}.csv")
-
-        os.makedirs(run_dir, exist_ok=True)
-
-        with open(run_path, 'w') as f:
-            writer = csv.writer(f)
-            writer.writerow(self.columns)
-            for row in self.rows.values():
-                processed_row = [remove_tags(value) for _, value in row.items()]
-                writer.writerow(processed_row)
 
     def stop(self):
         self.update_flag.clear()

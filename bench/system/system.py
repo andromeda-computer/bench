@@ -35,6 +35,15 @@ class System():
 
         if len(self.accelerators) > 1:
             raise SystemExit("Error: Only a single accelerator device is currently supported")
+
+    def get_sys_info(self):
+        return {
+            "OS": self.uname.system,
+            "Processor": f"{self.cpu_name} ({self.architecture})",
+            "Physical cores": self.cpu_phys_cores,
+            "Total cores": self.cpu_total_cores,
+            "RAM": f"{self.ram:.2f}GB"
+        }
         
     def _init_apple(self):
         if self.uname.system == "Darwin" and 'arm' in self.architecture.lower():

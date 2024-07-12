@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+import numpy as np
 import psutil
 import requests
 from rich.console import Console
@@ -7,7 +9,7 @@ from threading import Event
 import os.path
 from concurrent.futures import ThreadPoolExecutor
 
-from typing import List, TypedDict
+from typing import Callable, List, TypedDict
 
 console = Console()
 layout = Layout()
@@ -59,6 +61,41 @@ def copy_url(task_id: TaskID, url: str, path: str) -> None:
             progress.update(task_id, advance=len(chunk))
             if done_event.is_set():
                 return
+
+@dataclass
+class Column:
+    name: str
+    display: bool
+    compute: Callable[[List], float]
+    format: Callable[[float], str] = lambda x: f"{round(x, 2)}"
+
+
+def calculate_percentile(results, percentile, selector):
+    values = [selector(r) for r in results]
+    return np.percentile(values, percentile)
+
+def create_percentile_columns(attribute_name, selector, display=False):
+    return [
+        Column(f"p1 {attribute_name}", display, 
+               lambda results: calculate_percentile(results, 1, selector),
+               lambda x: f"[green]{round(x)}ms[/green]"),
+        
+        Column(f"p25 {attribute_name}", display, 
+               lambda results: calculate_percentile(results, 25, selector),
+               lambda x: f"[green]{round(x)}ms[/green]"),
+        
+        Column(f"p50 {attribute_name}", display, 
+               lambda results: calculate_percentile(results, 50, selector),
+               lambda x: f"[green]{round(x)}ms[/green]"),
+        
+        Column(f"p75 {attribute_name}", display, 
+               lambda results: calculate_percentile(results, 75, selector),
+               lambda x: f"[green]{round(x)}ms[/green]"),
+        
+        Column(f"p99 {attribute_name}", display, 
+               lambda results: calculate_percentile(results, 99, selector),
+               lambda x: f"[green]{round(x)}ms[/green]"),
+    ]
 
 class FileSpec(TypedDict):
     url: str

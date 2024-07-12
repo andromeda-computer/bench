@@ -1,7 +1,10 @@
+import json
+import os
 import time
 import yaml
 from typing import List
 
+from bench import config
 from bench.benchmarks.creation import CreationBenchmark
 from bench.benchmarks.hearing import HearingBenchmark
 from bench.benchmarks.language import LanguageBenchmark
@@ -40,9 +43,25 @@ class Benchmarker():
         self.runtimes = self._init_runtimes(self.cfg['runtimes'])
         self.benchmarks = self._init_benchmarks(self.cfg['benchmarks'], **kwargs)
         self.downloader = get_downloader()
+        self.run_results_dir = os.path.join(config.RUN_STORE_DIR, f"{system.get_accelerator_info_string()}:{self.name}")
+
+        self._log_metadata(**kwargs)
 
     async def download(self):
         await self.downloader.wait_for_downloads()
+
+    def _log_metadata(self, **kwargs):
+        os.makedirs(self.run_results_dir, exist_ok=True)
+
+        with open(f"{self.run_results_dir}/metadata.json", 'w') as metadata:
+            json.dump({
+                "name": self.name,
+                "flags": kwargs,
+                # "benchmarks": [b.name for b in self.benchmarks.values()],
+                # "runtimes": [r.name for r in self.runtimes.values()],
+                "system_info": system.get_sys_info(),
+                # "accelerator_info": system.get_accelerator_info(), #TODO
+            }, metadata, indent=2)
 
     def _init_benchmarks(self, cfg, **kwargs):
         benchmarks = {}
@@ -80,8 +99,13 @@ class Benchmarker():
 
         logger.info(f"Running benchmarks: {to_run}")
 
-        for bench in to_run:
-            if bench in self.benchmarks:
-                self.benchmarks[bench].benchmark()
+        for b in to_run:
+            if b in self.benchmarks:
+                bench = self.benchmarks[b]
+                bench.benchmark()
+
+                logger.info(f"Finished {b} benchmark")
+
+                bench.log_results(self.run_results_dir)
             else:
                 logger.warning(f"Benchmark {bench} not supported")

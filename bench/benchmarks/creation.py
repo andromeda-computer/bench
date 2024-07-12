@@ -1,7 +1,6 @@
-
 from typing import List
 from bench.benchmarks.benchmark import Benchmark
-from bench.benchmarks.benchmark_test import BenchmarkTest
+from bench.utils import create_percentile_columns, Column
 
 class CreationBenchmarkResult():
 
@@ -19,48 +18,42 @@ class CreationBenchmark(Benchmark):
 
     def _benchmark_columns(self):
         return [
-            "model load time",
-            "avg iter/sec",
-            "avg sec/iter",
-            "avg time to image",
-            "compute time to image",
-            "avg iter/sec/watt",
+            Column("elapsed time", True, lambda results: sum(r.time for r in results)),
+            Column("model load time", True, lambda results: sum(r.model_load_time for r in results)),
+            Column("avg watts", True, lambda results: sum(r.watts for r in results) / len(results)),
+            Column("avg iter/sec", True, 
+                   lambda results: sum(r.avg_iter_sec for r in results) / len(results),
+                   lambda x: f"[cyan]{round(x, 2)}[/cyan]"),
+            Column("avg sec/iter", True, 
+                   lambda results: sum(r.avg_sec_iter for r in results) / len(results),
+                   lambda x: f"[magenta]{round(x, 2)}[/magenta]"),
+            Column("avg time to image", True, 
+                   lambda results: sum(r.total_time for r in results) / len(results),
+                   lambda x: f"[green]{round(x, 2)}s[/green]"),
+            Column("compute time to image", True, 
+                   lambda results: sum(r.compute_time for r in results) / len(results),
+                   lambda x: f"[yellow]{round(x, 2)}s[/yellow]"),
+            Column("avg iter/sec/watt", True, 
+                   lambda results: (sum(r.avg_iter_sec for r in results) / len(results)) / 
+                                   (sum(r.watts for r in results) / len(results)),
+                   lambda x: f"{round(x, 4)}"),
+            Column("k samp percentage", False,
+                   lambda results: sum(r.k_samp_percentage for r in results) / len(results),
+                   lambda x: f"{round(x, 2)}"),
         ]
 
-    def _compute_results(self, results: List):
-        avg_watts = sum(result.watts for result in results) / len(results)
-        avg_iter_sec = sum(result.avg_iter_sec for result in results) / len(results)
-        avg_sec_iter = sum(result.avg_sec_iter for result in results) / len(results)
-        avg_total_time = sum(result.total_time for result in results) / len(results)
-        avg_compute_time = sum(result.compute_time for result in results) / len(results)
-        model_load_time = sum(result.model_load_time for result in results)
-        avg_iter_sec_watt = avg_iter_sec / avg_watts
-        k_samp_time = sum(result.k_samp_time for result in results)
-        k_samp_percentage = sum(result.k_samp_percentage for result in results) / len(results)
-        compute_time_to_image = sum(result.compute_time for result in results) / len(results)
+    def get_columns(self):
+        return [col.name for col in self._benchmark_columns()]
 
-        return {
-            "elapsed_time": sum(result.time for result in results),
-            "model_load_time": model_load_time,
-            "avg_watts": avg_watts,
-            "avg_iter_sec": avg_iter_sec,
-            "avg_sec_iter": avg_sec_iter,
-            "avg_total_time": avg_total_time,
-            "avg_compute_time": avg_compute_time,
-            "avg_iter_sec_watt": avg_iter_sec_watt,
-            "k_samp_time": k_samp_time,
-            "k_samp_percentage": k_samp_percentage,
-            "compute_time_to_image": compute_time_to_image,
-        }
+    def _compute_results(self, results: List):
+        return {col.name: col.compute(results) for col in self._benchmark_columns()}
 
     def _update_display(self, tag: str, data: dict):
         self.bench_logger.update_row(tag, {
-            "elapsed time": f"{round(data['elapsed_time'], 2)}s",
-            "model load time": f"{round(data['model_load_time'], 2)}s",
-            "avg watts": f"{round(data['avg_watts'], 2)} W",
-            "avg iter/sec": f"[cyan]{round(data['avg_iter_sec'], 2)}[/cyan]",
-            "avg sec/iter": f"[magenta]{round(data['avg_sec_iter'], 2)}[/magenta]",
-            "avg time to image": f"[green]{round(data['avg_total_time'], 2)}s[/green]",
-            "compute time to image": f"[yellow]{round(data['avg_compute_time'], 2)}s[/yellow]",
-            "avg iter/sec/watt": f"{round(data['avg_iter_sec_watt'], 4)}",
+            col.name: col.format(data[col.name])
+            for col in self._benchmark_columns()
+            if col.display
         })
+
+    def get_display_columns(self):
+            return [col.name for col in self._benchmark_columns() if col.display]

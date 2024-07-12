@@ -5,7 +5,7 @@ BASE_STORE_DIR = ".store"
 DATASET_STORE_DIR = os.path.join(BASE_STORE_DIR, "datasets")
 RUNTIME_STORE_DIR = os.path.join(BASE_STORE_DIR, "runtimes")
 MODEL_STORE_DIR = os.path.join(BASE_STORE_DIR, "models")
-RUN_STORE_DIR = "runs"
+RUN_STORE_DIR = os.path.join(BASE_STORE_DIR, "runs")
 PORT = 8314
 HOST = "localhost"
 
@@ -15,3 +15,4 @@ def update_store_dirs(base_dir):
     DATASET_STORE_DIR = os.path.join(BASE_STORE_DIR, "datasets")
     RUNTIME_STORE_DIR = os.path.join(BASE_STORE_DIR, "runtimes")
     MODEL_STORE_DIR = os.path.join(BASE_STORE_DIR, "models")
+    RUN_STORE_DIR = os.path.join(BASE_STORE_DIR, "runs")

@@ -7,6 +7,8 @@ from bench import config
 class Runtime(abc.ABC):
     def __init__(self, cfg):
         self.name = cfg['name']
+        self.version = cfg.get('version', None)
+        self.display_name = self.name if self.version is None else f"{self.name}-{self.version}"
         self.cfg = cfg
         self.dir = os.path.join(config.RUNTIME_STORE_DIR, self.name)
         self.started = False

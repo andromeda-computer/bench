@@ -13,36 +13,40 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     tmux \
+    vim \
+    ffmpeg \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user named bench
+RUN useradd -m -s /bin/bash bench
 
 # Set the working directory in the container
 WORKDIR /app
 
-# Clone the bench repository
-RUN git clone https://github.com/andromeda-computer/bench.git
+# Clone the repositories and download checkpoint files as root
+RUN git clone https://github.com/andromeda-computer/bench.git && \
+    git clone https://github.com/comfyanonymous/ComfyUI.git && \
+    curl -L -o /app/ComfyUI/models/checkpoints/sd_xl_base_1.0.safetensors \
+    https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors && \
+    curl -L -o /app/ComfyUI/models/checkpoints/sdxl_lightning_4step.safetensors \
+    https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors
 
-# Clone ComfyUI in its own directory
-RUN git clone https://github.com/comfyanonymous/ComfyUI.git
+# Change ownership of the /app directory to bench
+RUN chown -R bench:bench /app
+
+# Switch to the non-root user
+USER bench
 
 # Change to the bench directory
 WORKDIR /app/bench
 
 # Install Python dependencies
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --user --no-cache-dir -r requirements.txt
 
 # Install ComfyUI dependencies
-RUN pip3 install --no-cache-dir -r /app/ComfyUI/requirements.txt
-
-# Download checkpoint files
-RUN curl -L -o /app/ComfyUI/models/checkpoints/sd_xl_base_1.0.safetensors \
-    https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors
-
-RUN curl -L -o /app/ComfyUI/models/checkpoints/sdxl_lightning_4step.safetensors \
-    https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors
+RUN pip3 install --user --no-cache-dir -r /app/ComfyUI/requirements.txt
 
 # Set up the entrypoint
-COPY entrypoint.sh /entrypoint.sh
+COPY --chown=bench:bench entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-
-# Set the entrypoint
-ENTRYPOINT ["/entrypoint.sh"]

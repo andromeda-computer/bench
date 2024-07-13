@@ -3,6 +3,7 @@ __pycache__
 *llama.log
 
 # TODO these should be in a single dir probably
+.store/
 .runtimes/
 .datasets/
 .models/
@@ -11,3 +12,6 @@ runs/
 test.py
 
 .DS_Store
+
+setup.sh
+.env

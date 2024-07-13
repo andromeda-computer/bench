@@ -8,3 +8,5 @@ requests
 jinja2
 websocket-client
 numpy
+boto3
+python-dotenv

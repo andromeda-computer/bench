@@ -13,6 +13,7 @@ from rich.table import Table
 from rich.live import Live
 from rich.panel import Panel
 
+from bench import s3
 from bench.benchmarks.model import Model
 from bench.config import RUN_STORE_DIR
 from bench.logger import logger
@@ -151,6 +152,7 @@ class Benchmark(abc.ABC):
         time.sleep(2)
 
     def log_results(self, run_dir):
+        run_results_name = run_dir.split("/")[-1]
         run_path = os.path.join(run_dir, f"{self.name.lower()}.csv")
 
         with open(run_path, 'w') as f:
@@ -159,6 +161,10 @@ class Benchmark(abc.ABC):
 
             for row in self.rows.values():
                 writer.writerow(row)
+        
+        # upload to s3 if configured
+        s3.upload_file(run_path, f"{run_results_name}/{self.name.lower()}.csv")
+
 
 def get_benchmark_color(name):
     if name == "language":

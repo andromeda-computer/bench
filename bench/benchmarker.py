@@ -4,7 +4,7 @@ import time
 import yaml
 from typing import List
 
-from bench import config
+from bench import config, s3
 from bench.benchmarks.creation import CreationBenchmark
 from bench.benchmarks.hearing import HearingBenchmark
 from bench.benchmarks.language import LanguageBenchmark
@@ -43,7 +43,8 @@ class Benchmarker():
         self.runtimes = self._init_runtimes(self.cfg['runtimes'])
         self.benchmarks = self._init_benchmarks(self.cfg['benchmarks'], **kwargs)
         self.downloader = get_downloader()
-        self.run_results_dir = os.path.join(config.RUN_STORE_DIR, f"{system.get_accelerator_info_string()}:{self.name}")
+        self.run_result_name = f"{system.get_accelerator_info_string()}:{self.name}"
+        self.run_results_dir = os.path.join(config.RUN_STORE_DIR, self.run_result_name)
 
         self._log_metadata(**kwargs)
 
@@ -52,8 +53,9 @@ class Benchmarker():
 
     def _log_metadata(self, **kwargs):
         os.makedirs(self.run_results_dir, exist_ok=True)
+        metadata_path = f"{self.run_results_dir}/metadata.json"
 
-        with open(f"{self.run_results_dir}/metadata.json", 'w') as metadata:
+        with open(metadata_path, 'w') as metadata:
             json.dump({
                 "name": self.name,
                 "flags": kwargs,
@@ -62,6 +64,8 @@ class Benchmarker():
                 "system_info": system.get_sys_info(),
                 # "accelerator_info": system.get_accelerator_info(), #TODO
             }, metadata, indent=2)
+
+        s3.upload_file(metadata_path, f"{self.run_result_name}/metadata.json")
 
     def _init_benchmarks(self, cfg, **kwargs):
         benchmarks = {}

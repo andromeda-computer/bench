@@ -116,12 +116,16 @@ class FileDataset(Dataset):
         response = requests.get(self.url)
         json = response.json()
 
+        files = []
+
         for i, row in enumerate(json['rows']):
             url = row['row'][key]
             ext = url.split('.')[-1]
             filename = f"{i}.{ext}"
 
-            url_downloader([{ "url": url, "dest_dir": self.dir, "filename": filename }])
+            files.append({ "url": url, "dest_dir": self.dir, "filename": filename })
+
+        url_downloader(files)
 
     def _download_andromeda(self):
         response = requests.get(f"{self.url}/metadata.json")

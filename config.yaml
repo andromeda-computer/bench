@@ -108,15 +108,15 @@ benchmarks:
         context: 8192
         stop: "<|eot_id|>"
         url: https://huggingface.co/bartowski/Meta-Llama-3-8B-Instruct-GGUF/resolve/main/Meta-Llama-3-8B-Instruct-Q5_K_M.gguf
-      - name: phi3-medium
-        type: language
-        runtime: llamafile
-        prompt_template: "<|user|>\n{{ prompt }} <|end|>\n<|assistant|>"
-        quant: Q5_K_M
-        params: 14B
-        context: 131072
-        stop: "<|end|>"
-        url: https://huggingface.co/bartowski/Phi-3-medium-128k-instruct-GGUF/resolve/main/Phi-3-medium-128k-instruct-Q5_K_M.gguf
+      # - name: phi3-medium
+      #   type: language
+      #   runtime: llamafile
+      #   prompt_template: "<|user|>\n{{ prompt }} <|end|>\n<|assistant|>"
+      #   quant: Q5_K_M
+      #   params: 14B
+      #   context: 131072
+      #   stop: "<|end|>"
+      #   url: https://huggingface.co/bartowski/Phi-3-medium-128k-instruct-GGUF/resolve/main/Phi-3-medium-128k-instruct-Q5_K_M.gguf
       - name: codestral-22B
         type: language
         runtime: llamafile

@@ -97,6 +97,9 @@ class Benchmark(abc.ABC):
         pass
 
     def update_row(self, tag: str, data: List[BenchmarkResult], test_info: dict):
+        if len(data) == 0:
+            return
+
         computed_results = self._compute_results(data)
 
         self.rows[tag] = {**test_info, **computed_results}

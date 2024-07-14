@@ -37,7 +37,7 @@ class AsyncDownloader:
         dest_path = os.path.join(file_spec['dest_dir'], file_spec['filename'])
         async with self.semaphore:  # Use semaphore to limit concurrent downloads
             async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
+                async with session.get(url, timeout=None) as response:
                     if response.status == 200:
                         total_size = int(response.headers.get('content-length', 0))
                         downloaded_size = 0

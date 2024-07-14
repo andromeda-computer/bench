@@ -10,3 +10,4 @@ websocket-client
 numpy
 boto3
 python-dotenv
+aiohttp

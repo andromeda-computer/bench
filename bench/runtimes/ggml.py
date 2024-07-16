@@ -174,7 +174,7 @@ class LlamafileRuntime(ExecutableGGMLRuntime):
                 return None
 
             t_start = time.perf_counter()
-            response = requests.post(f"{self.url}/completion", json=req_data)
+            response = requests.post(f"{self.url}/completion", json=req_data, stream=True)
 
             result = self._decode_llamacpp_streaming_response(response, t_start)
 

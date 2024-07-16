@@ -31,6 +31,8 @@ class Dataset(abc.ABC):
             len = 5
             if suite == "language":
                 len = 2
+            elif suite == "vision":
+                len = 20
 
         self.data = self._load(len)
 

@@ -28,8 +28,11 @@ RUN mkdir -p /tmp/downloads && \
     curl -L -o /tmp/downloads/sdxl_lightning_4step.safetensors \
     https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors
 
-# Second RUN command to clone repo and move models
-RUN git clone --branch 4ca9b9c https://github.com/comfyanonymous/ComfyUI.git && \
+# Second RUN command to clone repo, checkout specific commit, and move models
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git && \
+    cd ComfyUI && \
+    git checkout 4ca9b9c && \
+    cd .. && \
     mkdir -p /app/ComfyUI/models/checkpoints && \
     mv /tmp/downloads/sd_xl_base_1.0.safetensors /app/ComfyUI/models/checkpoints/ && \
     mv /tmp/downloads/sdxl_lightning_4step.safetensors /app/ComfyUI/models/checkpoints/ && \

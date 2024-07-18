@@ -11,6 +11,9 @@ Collects the following info: TBD write this
 
 ## Running
 
+These instructions are out of date, a lot of dev has happened since I wrote them.
+Will update with better ones soon :)
+
 0. not necessary but create a venv and activate it (`python -m venv env && source ./env/bin/activate`)
 1. `pip install -r requirements.txt`
 2. `python main.py`

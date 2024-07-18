@@ -24,13 +24,15 @@ RUN useradd -m -s /bin/bash bench
 # Set the working directory in the container
 WORKDIR /app
 
-# Clone the repositories and download checkpoint files as root
-RUN git clone https://github.com/andromeda-computer/bench.git && \
-    git clone https://github.com/comfyanonymous/ComfyUI.git && \
+# Clone ComfyUI repository and download checkpoint files as root
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git && \
     curl -L -o /app/ComfyUI/models/checkpoints/sd_xl_base_1.0.safetensors \
     https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors && \
     curl -L -o /app/ComfyUI/models/checkpoints/sdxl_lightning_4step.safetensors \
     https://huggingface.co/ByteDance/SDXL-Lightning/resolve/main/sdxl_lightning_4step.safetensors
+
+# Copy the local code into the container
+COPY . /app/bench
 
 # Change ownership of the /app directory to bench
 RUN chown -R bench:bench /app
@@ -46,7 +48,3 @@ RUN pip3 install --user --no-cache-dir -r requirements.txt
 
 # Install ComfyUI dependencies
 RUN pip3 install --user --no-cache-dir -r /app/ComfyUI/requirements.txt
-
-# Set up the entrypoint
-COPY --chown=bench:bench entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh

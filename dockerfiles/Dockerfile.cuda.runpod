@@ -42,3 +42,7 @@ COPY . /app/bench
 WORKDIR /app/bench
 
 # TODO install python dependencies properly
+
+# Start the container
+SHELL ["/bin/bash", "--login", "-c"]
+CMD [ "/start.sh" ]

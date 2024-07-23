@@ -60,7 +60,7 @@ class Benchmarker():
                 "name": self.name,
                 "flags": kwargs,
                 # "benchmarks": [b.name for b in self.benchmarks.values()],
-                # "runtimes": [r.name for r in self.runtimes.values()],
+                "runtimes": [r.name for r in self.runtimes.values()],
                 "system_info": system.get_sys_info(),
                 # "accelerator_info": system.get_accelerator_info(), #TODO
             }, metadata, indent=2)

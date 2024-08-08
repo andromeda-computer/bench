@@ -166,7 +166,7 @@ class Benchmark(abc.ABC):
                 writer.writerow(row)
         
         # upload to s3 if configured
-        s3.upload_file(run_path, f"{run_results_name}/{self.name.lower()}.csv")
+        s3.upload_file(run_path, f"to_process/{run_results_name}/{self.name.lower()}.csv")
 
 
 def get_benchmark_color(name):

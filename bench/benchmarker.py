@@ -65,7 +65,7 @@ class Benchmarker():
                 # "accelerator_info": system.get_accelerator_info(), #TODO
             }, metadata, indent=2)
 
-        s3.upload_file(metadata_path, f"{self.run_result_name}/metadata.json")
+        s3.upload_file(metadata_path, f"to_process/{self.run_result_name}/metadata.json")
 
     def _init_benchmarks(self, cfg, **kwargs):
         benchmarks = {}

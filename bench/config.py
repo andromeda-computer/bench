@@ -1,5 +1,7 @@
 import os
 
+ANDROMEDA_BENCH_VERSION="0.0.1"
+
 CONFIG_FILE = "config.yaml"
 BASE_STORE_DIR = ".store"
 DATASET_STORE_DIR = os.path.join(BASE_STORE_DIR, "datasets")

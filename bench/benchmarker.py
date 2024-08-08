@@ -58,6 +58,7 @@ class Benchmarker():
         with open(metadata_path, 'w') as metadata:
             json.dump({
                 "name": self.name,
+                "version": config.ANDROMEDA_BENCH_VERSION,
                 "flags": kwargs,
                 # "benchmarks": [b.name for b in self.benchmarks.values()],
                 "runtimes": [r.name for r in self.runtimes.values()],

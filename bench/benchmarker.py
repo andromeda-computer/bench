@@ -113,4 +113,4 @@ class Benchmarker():
 
                 bench.log_results(self.run_results_dir)
             else:
-                logger.warning(f"Benchmark {bench} not supported")
+                logger.warning(f"Benchmark {b} not supported")

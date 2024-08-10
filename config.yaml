@@ -46,6 +46,21 @@ benchmarks:
         runtime: whisperfile
         quant: Q8_0
         url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.tiny.q8.bin
+      # - name: whisper-base
+      #   type: hearing
+      #   runtime: whisperfile
+      #   quant: Q8_0
+      #   url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.base.q8.bin
+      # - name: whisper-small
+      #   type: hearing
+      #   runtime: whisperfile
+      #   quant: Q8_0
+      #   url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.small.q8.bin
+      # - name: whisper-medium
+      #   type: hearing
+      #   runtime: whisperfile
+      #   quant: Q8_0
+      #   url: https://huggingface.co/cjpais/whisperfile/resolve/main/whisper.medium.q8.bin
       - name: whisper-large-v3
         type: hearing
         runtime: whisperfile

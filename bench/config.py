@@ -1,6 +1,6 @@
 import os
 
-ANDROMEDA_BENCH_VERSION="0.0.1"
+ANDROMEDA_BENCH_VERSION="0.0.2"
 
 CONFIG_FILE = "config.yaml"
 BASE_STORE_DIR = ".store"

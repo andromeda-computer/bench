@@ -90,6 +90,7 @@ class ExecutableGGMLRuntime(Runtime, abc.ABC):
                 self.executable,
                 f"-m {model.path}",
                 f"--port {PORT}",
+                "--gpu auto",
                 f"--host {HOST}",
                 f"--convert",
                 "--recompile" if recompile else "",
